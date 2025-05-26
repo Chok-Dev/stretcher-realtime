@@ -1,9 +1,10 @@
 <?php
 // routes/web.php
 
+use App\Events\StretcherUpdated;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StretcherController;
-use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
@@ -15,35 +16,48 @@ Route::middleware('auth.stretcher')->group(function () {
 
 Route::get('/show', [StretcherController::class, 'publicView'])->name('public.view');
 
-Route::get('/debug/websocket', function () {
-    return view('debug.websocket');
-});
-
-Route::post('/debug/test-broadcast', function () {
+Route::post('/debug/test-broadcast', function() {
     try {
         $testData = [
             'hn' => 'TEST001',
-            'pname' => 'ทดสอบ',
-            'fname' => 'ระบบ',
-            'lname' => 'แจ้งเตือน',
-            'department' => 'IT',
-            'department2' => 'Testing',
-            'stretcher_priority_name' => 'ปกติ',
+            'pname' => 'นาย',
+            'fname' => 'ทดสอบ',
+            'lname' => 'ระบบใหม่',
+            'department' => 'IT แผนก',
+            'department2' => 'ห้องพักผู้ป่วย',
+            'stretcher_priority_name' => 'ด่วน',
             'stretcher_type_name' => 'เปลธรรมดา',
             'stretcher_o2tube_type_name' => 'ไม่มี',
             'stretcher_register_id' => 99999,
             'stretcher_register_time' => now()->format('H:i:s'),
-            'stretcher_register_date' => now()->format('Y-m-d')
+            'stretcher_register_date' => now()->format('Y-m-d'),
+            'stretcher_work_status_id' => 1,
+            'stretcher_work_status_name' => 'รอรับงาน'
         ];
 
-        broadcast(new \App\Events\StretcherUpdated(
+        $event = new StretcherUpdated(
             action: 'new',
             stretcher: $testData,
-            metadata: ['source' => 'debug', 'timestamp' => now()]
-        ));
+            metadata: ['source' => 'debug_route', 'timestamp' => now()]
+        );
 
-        return response()->json(['success' => true, 'message' => 'Test broadcast sent']);
+        broadcast($event);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Test broadcast sent successfully',
+            'data' => $testData
+        ]);
+
     } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to send broadcast: ' . $e->getMessage(),
+            'error' => $e->getTraceAsString()
+        ], 500);
     }
+});
+
+Route::get('/debug/websocket', function() {
+    return view('debug.websocket');
 });

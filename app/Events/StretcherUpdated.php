@@ -15,12 +15,11 @@ class StretcherUpdated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public string $action,        // 'new', 'accepted', 'sent', 'completed', 'cancelled'
-        public array $stretcher,      // ข้อมูล stretcher
-        public ?string $teamName = null,  // ชื่อทีมที่รับงาน
-        public ?array $metadata = null    // ข้อมูลเพิ่มเติม
+        public string $action,
+        public array $stretcher,
+        public ?string $teamName = null,
+        public ?array $metadata = null
     ) {
-        // Log when event is created
         Log::info('StretcherUpdated event created', [
             'action' => $action,
             'stretcher_id' => $stretcher['stretcher_register_id'] ?? 'N/A',
@@ -31,30 +30,14 @@ class StretcherUpdated implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        // ใช้ channel เดียวกับ Livewire component
-        $channels = [
+        return [
             new Channel('stretcher-updates'),
         ];
-        
-        Log::info('StretcherUpdated broadcasting on channels', [
-            'channels' => ['test-channel'],
-            'action' => $this->action,
-            'channel_type' => 'public'
-        ]);
-        
-        return $channels;
     }
 
     public function broadcastAs(): string
     {
-        $eventName = 'StretcherUpdated';
-        
-        Log::info('StretcherUpdated event name', [
-            'event_name' => $eventName,
-            'action' => $this->action
-        ]);
-        
-        return $eventName;
+        return 'StretcherUpdated';
     }
 
     public function broadcastWith(): array
@@ -64,35 +47,16 @@ class StretcherUpdated implements ShouldBroadcast
             'stretcher' => $this->stretcher,
             'team_name' => $this->teamName,
             'metadata' => $this->metadata,
-            'timestamp' => now()->toISOString(),
-            'debug_info' => [
-                'event_name' => 'StretcherUpdated',
-                'channel' => 'stretcher-updates',
-                'broadcast_time' => now()->format('Y-m-d H:i:s'),
-                'server_time' => microtime(true),
-                'laravel_version' => app()->version(),
-                'broadcast_driver' => config('broadcasting.default')
-            ]
+            'timestamp' => now()->toISOString()
         ];
         
-        Log::info('StretcherUpdated broadcasting data', [
-            'data_size' => strlen(json_encode($data)),
+        Log::info('Broadcasting StretcherUpdated', [
+            'channel' => 'stretcher-updates',
+            'event' => 'StretcherUpdated',
             'action' => $this->action,
-            'debug_info' => $data['debug_info']
+            'data_size' => strlen(json_encode($data))
         ]);
         
         return $data;
-    }
-    
-    public function broadcastWhen(): bool
-    {
-        $shouldBroadcast = true;
-        
-        Log::info('StretcherUpdated broadcast condition', [
-            'should_broadcast' => $shouldBroadcast,
-            'action' => $this->action
-        ]);
-        
-        return $shouldBroadcast;
     }
 }

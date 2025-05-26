@@ -5,7 +5,6 @@ namespace App\Livewire;
 
 use App\Models\MyStretcher;
 use App\Models\StretcherRegister;
-use App\Events\StretcherUpdated;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Livewire\Component;
@@ -19,16 +18,21 @@ class StretcherDashboard extends Component
     public $showMyTasks = false;
     public $stretcherRequests;
 
+    protected $listeners = [
+        'echo:stretcher-updates,StretcherUpdated' => 'handleStretcherUpdate',
+        'refreshData' => 'loadData',
+        'stretcher-data-updated' => 'loadData'
+    ];
+
     public function mount()
     {
         $this->loadData();
-        Log::info('StretcherDashboard mounted', ['user_id' => Session::get('userid')]);
+        Log::info('StretcherDashboard mounted with user', ['user_id' => Session::get('userid')]);
     }
 
     public function loadData()
     {
-        $query = MyStretcher::today()
-            ->orderBy('stretcher_register_id', 'DESC');
+        $query = MyStretcher::today()->orderBy('stretcher_register_id', 'DESC');
 
         if ($this->hideCompleted) {
             $query->where('stretcher_work_status_id', '!=', 4);
@@ -47,11 +51,9 @@ class StretcherDashboard extends Component
         ]);
     }
 
-    // ใช้ Livewire Echo attribute แบบ standard
-    #[On('echo:test-channel,StretcherUpdated')]
     public function handleStretcherUpdate($event)
     {
-        Log::info('Dashboard received stretcher update via Livewire Echo', [
+        Log::info('Dashboard received Echo event', [
             'event' => $event,
             'action' => $event['action'] ?? 'unknown'
         ]);
@@ -59,10 +61,10 @@ class StretcherDashboard extends Component
         // Refresh data
         $this->loadData();
         
-        // Emit specific events for frontend handling
+        // Dispatch frontend events
         $this->dispatch('stretcher-data-updated', $event);
         
-        // Emit specific events based on action
+        // Dispatch specific action events
         if (isset($event['action'])) {
             switch($event['action']) {
                 case 'new':
@@ -81,7 +83,6 @@ class StretcherDashboard extends Component
         }
     }
 
-    // Fallback method for manual refresh
     #[On('refreshData')]
     public function refreshData()
     {
@@ -100,15 +101,15 @@ class StretcherDashboard extends Component
                 return;
             }
 
-            // Check if user has pending tasks
-            $pendingTasks = StretcherRegister::forTeam($userId)
+            // Check pending tasks
+           /*  $pendingTasks = StretcherRegister::forTeam($userId)
                 ->whereNotIn('stretcher_work_status_id', [4, 5])
                 ->count();
 
             if ($pendingTasks > 0) {
                 $this->dispatch('al-error', message: 'คุณมีงานค้างอยู่');
                 return;
-            }
+            } */
 
             $stretcher = StretcherRegister::where('stretcher_register_id', $stretcherId)
                 ->whereNull('stretcher_team_list_id')
@@ -146,8 +147,7 @@ class StretcherDashboard extends Component
             Log::error('Accept stretcher failed', [
                 'stretcher_id' => $stretcherId,
                 'user_id' => Session::get('userid'),
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
             $this->dispatch('al-error', message: 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
@@ -238,6 +238,7 @@ class StretcherDashboard extends Component
         $this->loadData();
     }
 
+    // Property accessors
     public function getTotalRequestsProperty()
     {
         return MyStretcher::today()->count();
