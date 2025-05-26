@@ -99,6 +99,7 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
+            transition: all 0.3s ease;
         }
         
         .connected {
@@ -110,14 +111,19 @@
             background: rgba(220, 53, 69, 0.9);
             color: white;
         }
+
+        .connecting {
+            background: rgba(255, 193, 7, 0.9);
+            color: black;
+        }
     </style>
     
     @stack('styles')
 </head>
 <body>
     <!-- Connection Status -->
-    <div id="connection-status" class="connection-status disconnected">
-        🔴 กำลังเชื่อมต่อ...
+    <div id="connection-status" class="connection-status connecting">
+        🟡 กำลังเชื่อมต่อ...
     </div>
 
     <!-- Audio for notifications -->
@@ -142,42 +148,29 @@
     
     @livewireScripts
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <script>
         // Global WebSocket connection status
         window.connectionStatus = {
             connected: false,
-            updateStatus: function(status) {
+            updateStatus: function(status, message = null) {
                 this.connected = status;
                 const statusEl = document.getElementById('connection-status');
                 if (statusEl) {
-                    if (status) {
+                    if (status === true) {
                         statusEl.className = 'connection-status connected';
                         statusEl.innerHTML = '🟢 เชื่อมต่อแล้ว';
-                    } else {
+                    } else if (status === false) {
                         statusEl.className = 'connection-status disconnected';
                         statusEl.innerHTML = '🔴 การเชื่อมต่อขาดหาย';
+                    } else {
+                        statusEl.className = 'connection-status connecting';
+                        statusEl.innerHTML = message || '🟡 กำลังเชื่อมต่อ...';
                     }
                 }
             }
         };
-
-        // WebSocket connection events
-        if (window.Echo) {
-            window.Echo.connector.pusher.connection.bind('connected', () => {
-                console.log('🟢 Stretcher WebSocket connected');
-                window.connectionStatus.updateStatus(true);
-            });
-
-            window.Echo.connector.pusher.connection.bind('disconnected', () => {
-                console.log('🔴 Stretcher WebSocket disconnected');
-                window.connectionStatus.updateStatus(false);
-            });
-
-            window.Echo.connector.pusher.connection.bind('error', (error) => {
-                console.error('❌ WebSocket error:', error);
-                window.connectionStatus.updateStatus(false);
-            });
-        }
 
         // Utility functions
         window.stretcherUtils = {
@@ -210,6 +203,113 @@
                 });
             }
         };
+
+        // Wait for Echo to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, checking Echo...');
+            
+            // Function to setup Echo listeners
+            function setupEchoListeners() {
+                if (!window.Echo) {
+                    console.error('❌ Echo not available');
+                    window.connectionStatus.updateStatus(false, '🔴 Echo ไม่พร้อม');
+                    return false;
+                }
+
+                console.log('✅ Echo available, setting up listeners...');
+                
+                try {
+                    // Monitor connection state
+                    if (window.Echo.connector && window.Echo.connector.pusher) {
+                        const pusher = window.Echo.connector.pusher;
+                        
+                        pusher.connection.bind('connected', () => {
+                            console.log('🟢 WebSocket connected');
+                            window.connectionStatus.updateStatus(true);
+                        });
+
+                        pusher.connection.bind('disconnected', () => {
+                            console.log('🔴 WebSocket disconnected');
+                            window.connectionStatus.updateStatus(false);
+                        });
+
+                        pusher.connection.bind('error', (error) => {
+                            console.error('❌ WebSocket error:', error);
+                            window.connectionStatus.updateStatus(false);
+                        });
+
+                        pusher.connection.bind('connecting', () => {
+                            console.log('🟡 WebSocket connecting...');
+                            window.connectionStatus.updateStatus('connecting');
+                        });
+
+                        // Check current state
+                        const state = pusher.connection.state;
+                        console.log('Current connection state:', state);
+                        
+                        if (state === 'connected') {
+                            window.connectionStatus.updateStatus(true);
+                        } else if (state === 'disconnected') {
+                            window.connectionStatus.updateStatus(false);
+                        } else {
+                            window.connectionStatus.updateStatus('connecting');
+                        }
+                    }
+
+                    // Setup stretcher channel listener
+                    const channel = window.Echo.channel('stretcher-updates');
+                    
+                    channel.listen('StretcherUpdated', (e) => {
+                        console.log('📨 Stretcher update received:', e);
+                        
+                        // Notify Livewire if available
+                        if (window.Livewire) {
+                            window.Livewire.dispatch('refreshData');
+                        }
+                    });
+
+                    console.log('✅ Echo listeners setup complete');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ Error setting up Echo listeners:', error);
+                    window.connectionStatus.updateStatus(false, '🔴 Setup ล้มเหลว');
+                    return false;
+                }
+            }
+
+            // Try to setup Echo listeners immediately
+            if (!setupEchoListeners()) {
+                // If failed, retry after a short delay
+                setTimeout(() => {
+                    console.log('Retrying Echo setup...');
+                    setupEchoListeners();
+                }, 1000);
+            }
+        });
+
+        // Debug function for console
+        window.debugConnection = function() {
+            console.log('=== Connection Debug Info ===');
+            console.log('Echo:', window.Echo);
+            
+            if (window.Echo && window.Echo.connector) {
+                console.log('Connector:', window.Echo.connector);
+                if (window.Echo.connector.pusher) {
+                    console.log('Pusher state:', window.Echo.connector.pusher.connection.state);
+                    console.log('Pusher options:', window.Echo.connector.pusher.config);
+                }
+            }
+            
+            console.log('Connection status:', window.connectionStatus.connected);
+            
+            // Test broadcast
+            console.log('Testing channel subscription...');
+            const testChannel = window.Echo.channel('stretcher-updates');
+            console.log('Test channel:', testChannel);
+        };
+
+        console.log('🚀 Stretcher system initialized. Use debugConnection() for troubleshooting.');
     </script>
     
     @stack('scripts')

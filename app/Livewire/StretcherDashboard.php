@@ -9,6 +9,7 @@ use App\Events\StretcherUpdated;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Livewire\Component;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
 
@@ -18,14 +19,10 @@ class StretcherDashboard extends Component
     public $showMyTasks = false;
     public $stretcherRequests;
 
-    protected $listeners = [
-        'refreshData' => 'loadData',
-        'echo:stretcher-updates,StretcherUpdated' => 'handleStretcherUpdate'
-    ];
-
     public function mount()
     {
         $this->loadData();
+        Log::info('StretcherDashboard mounted', ['user_id' => Session::get('userid')]);
     }
 
     public function loadData()
@@ -42,33 +39,54 @@ class StretcherDashboard extends Component
         }
 
         $this->stretcherRequests = $query->get();
+        
+        Log::info('Dashboard data loaded', [
+            'count' => $this->stretcherRequests->count(),
+            'hideCompleted' => $this->hideCompleted,
+            'showMyTasks' => $this->showMyTasks
+        ]);
     }
 
+    // ใช้ Livewire Echo attribute แบบ standard
+    #[On('echo:test-channel,StretcherUpdated')]
     public function handleStretcherUpdate($event)
     {
-        Log::info('Received stretcher update via WebSocket', $event);
+        Log::info('Dashboard received stretcher update via Livewire Echo', [
+            'event' => $event,
+            'action' => $event['action'] ?? 'unknown'
+        ]);
         
         // Refresh data
         $this->loadData();
         
-        // Emit browser events based on action
-        switch($event['action']) {
-            case 'new':
-                $this->dispatch('new-stretcher-request', stretcher: $event['stretcher']);
-                break;
-            case 'accepted':
-                $this->dispatch('stretcher-accepted', 
-                    stretcher: $event['stretcher'], 
-                    teamName: $event['team_name']
-                );
-                break;
-            case 'sent':
-                $this->dispatch('stretcher-sent', stretcher: $event['stretcher']);
-                break;
-            case 'completed':
-                $this->dispatch('stretcher-completed', stretcher: $event['stretcher']);
-                break;
+        // Emit specific events for frontend handling
+        $this->dispatch('stretcher-data-updated', $event);
+        
+        // Emit specific events based on action
+        if (isset($event['action'])) {
+            switch($event['action']) {
+                case 'new':
+                    $this->dispatch('new-stretcher-request', $event);
+                    break;
+                case 'accepted':
+                    $this->dispatch('stretcher-accepted', $event);
+                    break;
+                case 'sent':
+                    $this->dispatch('stretcher-sent', $event);
+                    break;
+                case 'completed':
+                    $this->dispatch('stretcher-completed', $event);
+                    break;
+            }
         }
+    }
+
+    // Fallback method for manual refresh
+    #[On('refreshData')]
+    public function refreshData()
+    {
+        Log::info('Dashboard manual refresh triggered');
+        $this->loadData();
     }
 
     public function accept($stretcherId)
@@ -118,9 +136,20 @@ class StretcherDashboard extends Component
 
             $this->dispatch('al-success', message: 'รับงานสำเร็จ');
             
+            Log::info('Stretcher accepted', [
+                'stretcher_id' => $stretcherId,
+                'user_id' => $userId,
+                'user_name' => $userName
+            ]);
+            
         } catch (\Exception $e) {
-            Log::error('Accept stretcher failed: ' . $e->getMessage());
-            $this->dispatch('al-error', message: 'เกิดข้อผิดพลาด');
+            Log::error('Accept stretcher failed', [
+                'stretcher_id' => $stretcherId,
+                'user_id' => Session::get('userid'),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('al-error', message: 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
     }
 
@@ -144,9 +173,17 @@ class StretcherDashboard extends Component
 
             $this->dispatch('al-success', message: 'บันทึกสำเร็จ');
             
+            Log::info('Stretcher sent', [
+                'stretcher_id' => $stretcherId,
+                'user_id' => Session::get('userid')
+            ]);
+            
         } catch (\Exception $e) {
-            Log::error('Send stretcher failed: ' . $e->getMessage());
-            $this->dispatch('al-error', message: 'เกิดข้อผิดพลาด');
+            Log::error('Send stretcher failed', [
+                'stretcher_id' => $stretcherId,
+                'error' => $e->getMessage()
+            ]);
+            $this->dispatch('al-error', message: 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
     }
 
@@ -171,9 +208,17 @@ class StretcherDashboard extends Component
 
             $this->dispatch('al-success', message: 'งานสำเร็จ');
             
+            Log::info('Stretcher completed', [
+                'stretcher_id' => $stretcherId,
+                'user_id' => Session::get('userid')
+            ]);
+            
         } catch (\Exception $e) {
-            Log::error('Complete stretcher failed: ' . $e->getMessage());
-            $this->dispatch('al-error', message: 'เกิดข้อผิดพลาด');
+            Log::error('Complete stretcher failed', [
+                'stretcher_id' => $stretcherId,
+                'error' => $e->getMessage()
+            ]);
+            $this->dispatch('al-error', message: 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
     }
 
