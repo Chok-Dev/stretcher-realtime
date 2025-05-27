@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'auth.stretcher' => \App\Http\Middleware\StretcherAuth::class,
+            'auth.stretcher' => \App\Http\Middleware\StretcherAuthMiddleware::class,
 
         ]);
         $middleware->validateCsrfTokens(except: []);

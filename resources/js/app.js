@@ -1,9 +1,6 @@
 // resources/js/app.js
 console.log('🚀 App.js starting...');
 
-// Import Livewire
-import { Livewire } from '../../vendor/livewire/livewire/dist/livewire.esm';
-
 // Import WebSocket dependencies
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
@@ -116,29 +113,19 @@ function setupStretcherChannel() {
             // Show notification based on action
             handleStretcherNotification(e);
             
-            // ส่ง event ไปยัง Livewire component
-            if (window.Livewire) {
-                console.log('🔄 Dispatching to Livewire...');
-                
-                // Dispatch multiple events เพื่อให้แน่ใจ
-                window.Livewire.dispatch('stretcher-data-updated', e);
-                window.Livewire.dispatch('refreshData');
-                
-                // หากมี component name ให้ dispatch ไปเฉพาะ
-                const dashboardComponent = window.Livewire.find('stretcher-dashboard');
-                if (dashboardComponent) {
-                    dashboardComponent.call('handleStretcherUpdate', e);
-                    dashboardComponent.call('loadData');
-                }
+            // Trigger page-specific refresh functions
+            if (typeof window.refreshDashboard === 'function') {
+                window.refreshDashboard();
             }
             
-            // Force page refresh หากจำเป็น (backup method)
-            setTimeout(() => {
-                console.log('🔄 Backup refresh...');
-                if (window.location.pathname.includes('dashboard') || window.location.pathname === '/') {
-                    window.location.reload();
-                }
-            }, 2000);
+            if (typeof window.refreshPublicView === 'function') {
+                window.refreshPublicView();
+            }
+            
+            // Generic refresh for any page that has loadData function
+            if (typeof window.loadData === 'function') {
+                window.loadData();
+            }
         });
 
         channel.error((error) => {
@@ -318,94 +305,6 @@ window.debugWebSocket = function() {
     }
     
     console.log('Stretcher channel:', window.stretcherChannel);
-    console.log('Livewire available:', !!window.Livewire);
-    
-    // ตรวจสอบ Livewire components
-    if (window.Livewire && window.Livewire.all) {
-        console.log('Livewire components:', window.Livewire.all());
-    }
-};
-
-window.testLivewireRefresh = function() {
-    console.log('🧪 Testing Livewire refresh...');
-    
-    if (window.Livewire) {
-        // ทดสอบ dispatch events
-        window.Livewire.dispatch('refreshData');
-        window.Livewire.dispatch('stretcher-data-updated', { test: true });
-        
-        // ทดสอบ component methods
-        const allComponents = window.Livewire.all();
-        console.log('📱 All Livewire components:', allComponents);
-        
-        // หา dashboard component
-        let dashboardComponent = null;
-        allComponents.forEach(component => {
-            if (component.name === 'stretcher-dashboard' || 
-                component.el.getAttribute('wire:id') === 'stretcher-dashboard') {
-                dashboardComponent = component;
-            }
-        });
-        
-        if (dashboardComponent) {
-            console.log('📱 Dashboard component found:', dashboardComponent);
-            
-            // เรียก methods ของ component
-            try {
-                dashboardComponent.call('loadData');
-                console.log('✅ loadData() called successfully');
-            } catch (error) {
-                console.error('❌ Failed to call loadData():', error);
-            }
-        } else {
-            console.log('❌ Dashboard component not found');
-            console.log('Available components:', allComponents.map(c => ({ name: c.name, id: c.id })));
-        }
-    } else {
-        console.log('❌ Livewire not available');
-    }
-    
-    // ทดสอบ manual refresh
-    const dashboardEl = document.getElementById('stretcher-dashboard-container');
-    if (dashboardEl) {
-        console.log('📱 Dashboard element found, dispatching manual refresh...');
-        const event = new CustomEvent('dashboard-refresh', { detail: { test: true } });
-        dashboardEl.dispatchEvent(event);
-    }
-};
-
-// Test dashboard with fake data
-window.testDashboardWithFakeData = function() {
-    console.log('🧪 Testing dashboard with fake data...');
-    
-    const fakeStretcherData = {
-        action: 'new',
-        stretcher: {
-            stretcher_register_id: 99999,
-            hn: 'FAKE001',
-            pname: 'นาย',
-            fname: 'ทดสอบ',
-            lname: 'ระบบ',
-            department: 'IT Test Department',
-            department2: 'Emergency Room',
-            stretcher_priority_name: 'ด่วน',
-            stretcher_work_status_id: 1,
-            stretcher_work_status_name: 'รอรับงาน'
-        },
-        team_name: null,
-        metadata: { source: 'fake_test' }
-    };
-    
-    // Simulate receiving WebSocket event
-    handleStretcherNotification(fakeStretcherData);
-    
-    // Dispatch to Livewire
-    if (window.Livewire) {
-        window.Livewire.dispatch('stretcher-data-updated', fakeStretcherData);
-        window.Livewire.dispatch('new-stretcher-request', fakeStretcherData);
-    }
-    
-    console.log('🎉 Fake data test completed');
 };
 
 window.testBroadcast = function() {
@@ -432,6 +331,34 @@ window.testBroadcast = function() {
     });
 };
 
+// Test with fake data
+window.testWithFakeData = function() {
+    console.log('🧪 Testing with fake data...');
+    
+    const fakeStretcherData = {
+        action: 'new',
+        stretcher: {
+            stretcher_register_id: 99999,
+            hn: 'FAKE001',
+            pname: 'นาย',
+            fname: 'ทดสอบ',
+            lname: 'ระบบ',
+            department: 'IT Test Department',
+            department2: 'Emergency Room',
+            stretcher_priority_name: 'ด่วน',
+            stretcher_work_status_id: 1,
+            stretcher_work_status_name: 'รอรับงาน'
+        },
+        team_name: null,
+        metadata: { source: 'fake_test' }
+    };
+    
+    // Simulate receiving WebSocket event
+    handleStretcherNotification(fakeStretcherData);
+    
+    console.log('🎉 Fake data test completed');
+};
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🏗️ DOM loaded, initializing...');
@@ -443,10 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateStatus: updateConnectionStatus
     };
     
-    console.log('💡 Use debugWebSocket() or testBroadcast() in console for testing');
+    console.log('💡 Use debugWebSocket(), testBroadcast(), or testWithFakeData() in console for testing');
 });
 
-// Start Livewire
-Livewire.start();
-
-console.log('✅ App.js setup complete');
+console.log('✅ App.js setup complete (without Livewire)');

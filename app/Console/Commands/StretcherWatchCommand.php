@@ -27,7 +27,7 @@ class StretcherWatchCommand extends Command
     private $processedIds = [];
     private $debug = false;
     private $interval = 5;
-    private $broadcast = false;
+    private $broadcast = true;
     private $simulate = false;
 
     public function handle()

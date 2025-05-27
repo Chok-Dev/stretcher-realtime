@@ -8,7 +8,7 @@ use App\Http\Controllers\StretcherController;
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/logout', [StretcherController::class, 'logout'])->name('logout');
 
 Route::middleware('auth.stretcher')->group(function () {
     Route::get('/', [StretcherController::class, 'dashboard'])->name('dashboard');
@@ -16,6 +16,21 @@ Route::middleware('auth.stretcher')->group(function () {
 
 Route::get('/show', [StretcherController::class, 'publicView'])->name('public.view');
 
+// API Routes for AJAX calls
+Route::prefix('api')->group(function () {
+    // Dashboard API
+    Route::middleware('auth.stretcher')->group(function () {
+        Route::get('/dashboard-data', [StretcherController::class, 'getDashboardData'])->name('api.dashboard.data');
+        Route::post('/stretcher/accept/{id}', [StretcherController::class, 'acceptRequest'])->name('api.stretcher.accept');
+        Route::post('/stretcher/send/{id}', [StretcherController::class, 'sendRequest'])->name('api.stretcher.send');
+        Route::post('/stretcher/complete/{id}', [StretcherController::class, 'completeRequest'])->name('api.stretcher.complete');
+    });
+    
+    // Public view API (no auth required)
+    Route::get('/public-view-data', [StretcherController::class, 'getPublicViewData'])->name('api.public.data');
+});
+
+// Debug routes
 Route::post('/debug/test-broadcast', function() {
     try {
         $testData = [

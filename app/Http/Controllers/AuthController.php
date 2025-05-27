@@ -36,6 +36,7 @@ class AuthController extends Controller
 
     private function loginUser(Request $request)
     {
+      
         $user = DB::connection('pgsql')->table('stretcher_team_list as s')
             ->leftJoin('doctor as d', 'd.code', 's.stretcher_team_list_doctor')
             ->leftJoin('opduser as o', 'o.doctorcode', 'd.code')
