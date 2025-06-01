@@ -28,11 +28,7 @@ class StretcherManager extends Component
     public $lastUpdate; // เพิ่ม property สำหรับ track การ update
     
     protected $listeners = [
-        'EditConfirm' => 'EditConfirm',
-        'EditConfirm2' => 'EditConfirm2',
-        'EditConfirm3' => 'EditConfirm3',
-        'EditConfirm4' => 'EditConfirm4',
-        'EditConfirmDischarge' => 'EditConfirmDischarge',
+
         'refreshData' => 'loadData', // เพิ่ม listener สำหรับ refresh
     ];
     
@@ -59,6 +55,280 @@ class StretcherManager extends Component
     }
 
     // ===================================================================
+    // 🎯 Enhanced Helper Methods for UI
+    // ===================================================================
+
+    /**
+     * Get priority CSS class based on priority name
+     */
+    public function getPriorityClass($priorityName)
+    {
+        $priorityClasses = [
+            'ด่วนที่สุด' => 'priority-critical',
+            'ด่วน' => 'priority-urgent',
+            'ปกติ' => 'priority-normal',
+            'ไม่ด่วน' => 'priority-low'
+        ];
+
+        return $priorityClasses[$priorityName] ?? 'priority-normal';
+    }
+
+    /**
+     * Get urgency CSS class for special cases
+     */
+    public function getUrgencyClass($request)
+    {
+        $isEmergency = !empty($request['stretcher_emergency_name']);
+        $isUrgent = in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']);
+        
+        if ($isEmergency || $isUrgent) {
+            return 'urgent-request';
+        }
+        
+        return '';
+    }
+
+    /**
+     * Get status badge configuration
+     */
+    public function getStatusConfig($statusId)
+    {
+        $statusConfig = [
+            1 => [
+                'class' => 'status-waiting',
+                'icon' => 'fas fa-clock',
+                'text' => 'รอรับงาน',
+                'color' => '#6b7280'
+            ],
+            2 => [
+                'class' => 'status-accepted',
+                'icon' => 'fas fa-hand-paper',
+                'text' => 'รับงานแล้ว',
+                'color' => '#f59e0b'
+            ],
+            3 => [
+                'class' => 'status-progress',
+                'icon' => 'fas fa-running',
+                'text' => 'กำลังดำเนินการ',
+                'color' => '#06b6d4'
+            ],
+            4 => [
+                'class' => 'status-completed',
+                'icon' => 'fas fa-check-circle',
+                'text' => 'สำเร็จ',
+                'color' => '#10b981'
+            ],
+            5 => [
+                'class' => 'status-cancelled',
+                'icon' => 'fas fa-times-circle',
+                'text' => 'ยกเลิก',
+                'color' => '#ef4444'
+            ]
+        ];
+
+        return $statusConfig[$statusId] ?? $statusConfig[1];
+    }
+
+    /**
+     * Format time difference in Thai
+     */
+    public function formatTimeDifference($dateTime)
+    {
+        $carbon = Carbon::parse($dateTime);
+        $now = Carbon::now();
+        
+        $diffInMinutes = $carbon->diffInMinutes($now);
+        $diffInHours = $carbon->diffInHours($now);
+        $diffInDays = $carbon->diffInDays($now);
+        
+        if ($diffInMinutes < 1) {
+            return 'เมื่อสักครู่';
+        } elseif ($diffInMinutes < 60) {
+            return $diffInMinutes . ' นาทีที่แล้ว';
+        } elseif ($diffInHours < 24) {
+            return $diffInHours . ' ชั่วโมงที่แล้ว';
+        } else {
+            return $diffInDays . ' วันที่แล้ว';
+        }
+    }
+
+    /**
+     * Get request urgency level (1-5, 5 being most urgent)
+     */
+    public function getUrgencyLevel($request)
+    {
+        $urgencyLevel = 1;
+        
+        // Base urgency on priority
+        switch ($request['stretcher_priority_name']) {
+            case 'ด่วนที่สุด':
+                $urgencyLevel = 5;
+                break;
+            case 'ด่วน':
+                $urgencyLevel = 4;
+                break;
+            case 'ปกติ':
+                $urgencyLevel = 2;
+                break;
+            case 'ไม่ด่วน':
+                $urgencyLevel = 1;
+                break;
+        }
+        
+        // Increase urgency if emergency
+        if (!empty($request['stretcher_emergency_name'])) {
+            $urgencyLevel = 5;
+        }
+        
+        // Increase urgency based on waiting time
+        $waitingMinutes = Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])
+            ->diffInMinutes(Carbon::now());
+        
+        if ($waitingMinutes > 60) {
+            $urgencyLevel = min(5, $urgencyLevel + 1);
+        }
+        
+        return $urgencyLevel;
+    }
+
+    /**
+     * Sort requests by urgency and time
+     */
+    public function sortRequestsByUrgency($data)
+    {
+        return collect($data)->sortBy(function($request) {
+            $urgencyLevel = $this->getUrgencyLevel($request);
+            $timeStamp = Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])->timestamp;
+            
+            // Higher urgency first, then older requests first
+            return [$urgencyLevel * -1, $timeStamp];
+        })->values()->toArray();
+    }
+
+    /**
+     * Get department color coding
+     */
+    public function getDepartmentColor($departmentName)
+    {
+        $departmentColors = [
+            'อุบัติเหตุฉุกเฉิน' => '#ef4444',
+            'ห้องผ่าตัด' => '#f59e0b',
+            'ICU' => '#dc2626',
+            'CCU' => '#dc2626',
+            'หอผู้ป่วยใน' => '#06b6d4',
+            'อายุรกรรม' => '#10b981',
+            'ศัลยกรรม' => '#8b5cf6',
+            'กุมารเวชกรรม' => '#ec4899',
+            'สูติกรรม' => '#f97316',
+            'ทันตกรรม' => '#84cc16',
+            'จักษุกรรม' => '#06b6d4',
+            'หู คอ จมูก' => '#6366f1',
+            'กายภาพบำบัด' => '#10b981',
+            'ห้องเอกซเรย์' => '#64748b',
+            'ห้องตรวจหัวใจ' => '#dc2626',
+            'ห้องไตเทียม' => '#0891b2'
+        ];
+
+        return $departmentColors[$departmentName] ?? '#6b7280';
+    }
+
+    /**
+     * Get equipment icon based on type
+     */
+    public function getEquipmentIcon($equipmentType)
+    {
+        $equipmentIcons = [
+            'เปลธรรมดา' => 'fas fa-bed',
+            'เปล ICU' => 'fas fa-procedures',
+            'เปลพิเศษ' => 'fas fa-wheelchair',
+            'เปลฉุกเฉิน' => 'fas fa-ambulance',
+            'เปลผ่าตัด' => 'fas fa-user-md',
+            'O2 Mask' => 'fas fa-lungs',
+            'O2 Cannula' => 'fas fa-wind',
+            'Ventilator' => 'fas fa-heartbeat'
+        ];
+
+        return $equipmentIcons[$equipmentType] ?? 'fas fa-bed';
+    }
+
+    /**
+     * Check if request needs immediate attention
+     */
+    public function needsImmediateAttention($request)
+    {
+        $urgencyLevel = $this->getUrgencyLevel($request);
+        $waitingMinutes = Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])
+            ->diffInMinutes(Carbon::now());
+        
+        return $urgencyLevel >= 4 || $waitingMinutes > 30;
+    }
+
+    /**
+     * Get estimated completion time
+     */
+    public function getEstimatedCompletionTime($request)
+    {
+        $baseTime = 15; // Base time in minutes
+        
+        // Adjust based on priority
+        switch ($request['stretcher_priority_name']) {
+            case 'ด่วนที่สุด':
+                $baseTime = 5;
+                break;
+            case 'ด่วน':
+                $baseTime = 10;
+                break;
+            case 'ปกติ':
+                $baseTime = 15;
+                break;
+            case 'ไม่ด่วน':
+                $baseTime = 20;
+                break;
+        }
+        
+        // Adjust based on equipment type
+        if (strpos($request['stretcher_type_name'], 'ICU') !== false) {
+            $baseTime += 10;
+        }
+        
+        if (!empty($request['stretcher_o2tube_type_name'])) {
+            $baseTime += 5;
+        }
+        
+        return $baseTime;
+    }
+
+    /**
+     * Enhanced notification system
+     */
+    public function showEnhancedNotification($message, $type = 'info', $autoHide = true)
+    {
+        $this->showNotification = true;
+        $this->notificationMessage = $message;
+        $this->notificationType = $type;
+        
+        // Auto-hide after delay
+        if ($autoHide) {
+            $this->dispatch('auto-hide-notification', ['delay' => 5000]);
+        }
+    }
+
+    /**
+     * Enhanced error handling with user-friendly messages
+     */
+    public function handleError($exception, $userMessage = null)
+    {
+        Log::error('Stretcher Manager Error: ' . $exception->getMessage(), [
+            'exception' => $exception,
+            'user_id' => $this->currentUserId,
+            'timestamp' => now()
+        ]);
+        
+        $message = $userMessage ?: 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง';
+        $this->showEnhancedNotification($message, 'error');
+    }
+
+    // ===================================================================
     // 🎯 Laravel Echo Event Listeners
     // ===================================================================
 
@@ -77,9 +347,10 @@ class StretcherManager extends Component
             'completed' => 'งานสำเร็จ'
         ];
         
-        $this->showNotification('อัปเดตสถานะ', 
+        $this->showEnhancedNotification(
             "{$teamMember} {$actionText[$action]} รายการ ID: {$event['stretcher_id']}", 
-            'success');
+            'success'
+        );
         
         // ส่ง event ไปยัง JavaScript
         $this->dispatch('stretcher-item-updated', [
@@ -98,9 +369,10 @@ class StretcherManager extends Component
         Log::info('🔔 Received NewStretcherRequest event', $event);
         
         $request = $event['request'];
-        $this->showNotification('รายการใหม่!', 
+        $this->showEnhancedNotification(
             "มีรายการขอเปลใหม่: HN {$request['hn']} - {$request['pname']}{$request['fname']} {$request['lname']}", 
-            'info');
+            'info'
+        );
         
         $this->dispatch('new-request-arrived', [
             'request' => $request
@@ -125,9 +397,10 @@ class StretcherManager extends Component
         $newStatusName = $statusNames[$event['new_status']] ?? 'ไม่ทราบ';
         $teamMember = $event['team_member'] ?? 'ระบบ';
         
-        $this->showNotification('เปลี่ยนสถานะ', 
+        $this->showEnhancedNotification(
             "{$teamMember} เปลี่ยนสถานะเป็น '{$newStatusName}'", 
-            'warning');
+            'warning'
+        );
         
         $this->dispatch('status-change-detected', [
             'stretcherId' => $event['stretcher_id'],
@@ -162,6 +435,9 @@ class StretcherManager extends Component
                 return (array) $item;
             })->toArray();
 
+            // Sort by urgency and time
+            $this->data = $this->sortRequestsByUrgency($this->data);
+
             $this->lastUpdate = now()->format('H:i:s');
             Log::info('✅ Data loaded successfully', [
                 'count' => count($this->data),
@@ -171,7 +447,7 @@ class StretcherManager extends Component
         } catch (Exception $e) {
             Log::error('❌ Load Data Error: ' . $e->getMessage());
             $this->data = [];
-            $this->showError('ไม่สามารถโหลดข้อมูลได้: ' . $e->getMessage());
+            $this->handleError($e, 'ไม่สามารถโหลดข้อมูลได้');
         }
     }
 
@@ -200,7 +476,7 @@ class StretcherManager extends Component
             // ตรวจสอบ user ID
             if (!$this->currentUserId) {
                 Log::warning('No user ID in session');
-                $this->showError('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+                $this->handleError(new Exception('ไม่พบข้อมูลผู้ใช้'), 'ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
                 return;
             }
 
@@ -211,12 +487,12 @@ class StretcherManager extends Component
                 ->first();
 
             if (!$currentRequest) {
-                $this->showError('ไม่พบรายการนี้ในระบบ');
+                $this->handleError(new Exception('ไม่พบรายการ'), 'ไม่พบรายการนี้ในระบบ');
                 return;
             }
 
             if ($currentRequest->stretcher_team_list_id) {
-                $this->showError('รายการนี้มีคนรับไปแล้ว');
+                $this->handleError(new Exception('รายการถูกรับแล้ว'), 'รายการนี้มีคนรับไปแล้ว');
                 $this->forceRefresh(); // Force refresh
                 return;
             }
@@ -274,7 +550,7 @@ class StretcherManager extends Component
                 Log::warning('⚠️ Broadcasting failed: ' . $e->getMessage());
             }
 
-            $this->showSuccess('รับงานสำเร็จ! ID: ' . $requestId);
+            $this->showEnhancedNotification('รับงานสำเร็จ! ID: ' . $requestId, 'success');
             
             // Force refresh แทนการใช้ loadData() ธรรมดา
             $this->forceRefresh();
@@ -297,7 +573,7 @@ class StretcherManager extends Component
                 'trace' => $e->getTraceAsString()
             ]);
             
-            $this->showError('เกิดข้อผิดพลาด: ' . $e->getMessage());
+            $this->handleError($e, 'เกิดข้อผิดพลาด: ' . $e->getMessage());
             $this->forceRefresh(); // Refresh หลังจาก error
         }
     }
@@ -401,14 +677,14 @@ class StretcherManager extends Component
                     Log::warning('Broadcasting failed: ' . $e->getMessage());
                 }
 
-                $this->showSuccess('อัปเดตสถานะสำเร็จ');
+                $this->showEnhancedNotification('อัปเดตสถานะสำเร็จ', 'success');
                 $this->forceRefresh();
             } else {
-                $this->showError('ไม่สามารถอัปเดตได้');
+                $this->handleError(new Exception('ไม่สามารถอัปเดตได้'), 'ไม่สามารถอัปเดตได้');
             }
         } catch (Exception $e) {
             Log::error('Send to patient failed: ' . $e->getMessage());
-            $this->showError('เกิดข้อผิดพลาด: ' . $e->getMessage());
+            $this->handleError($e, 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
     }
 
@@ -438,14 +714,14 @@ class StretcherManager extends Component
                     Log::warning('Broadcasting failed: ' . $e->getMessage());
                 }
 
-                $this->showSuccess('งานสำเร็จ');
+                $this->showEnhancedNotification('งานสำเร็จ', 'success');
                 $this->forceRefresh();
             } else {
-                $this->showError('ไม่สามารถอัปเดตได้');
+                $this->handleError(new Exception('ไม่สามารถอัปเดตได้'), 'ไม่สามารถอัปเดตได้');
             }
         } catch (Exception $e) {
             Log::error('Complete task failed: ' . $e->getMessage());
-            $this->showError('เกิดข้อผิดพลาด: ' . $e->getMessage());
+            $this->handleError($e, 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
     }
 
@@ -455,12 +731,12 @@ class StretcherManager extends Component
 
     private function showSuccess($message)
     {
-        $this->showNotification('สำเร็จ', $message, 'success');
+        $this->showEnhancedNotification($message, 'success');
     }
 
     private function showError($message)
     {
-        $this->showNotification('เกิดข้อผิดพลาด', $message, 'error');
+        $this->showEnhancedNotification($message, 'error');
     }
 
     private function showNotification($title, $message, $type = 'info')

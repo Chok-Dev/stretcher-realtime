@@ -1,1173 +1,1359 @@
 {{-- resources/views/livewire/stretcher-manager.blade.php --}}
-<div>
-    <!-- Audio element for notifications -->
+<div class="stretcher-manager-container">
+    <!-- Enhanced Audio System -->
     <audio id="notification-sound" preload="auto">
         <source src="{{ asset('storage/sounds/notification.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('storage/sounds/notification.wav') }}" type="audio/wav">
     </audio>
 
-    <!-- Real-time Notification -->
+    <!-- Enhanced Real-time Notification -->
     @if ($showNotification)
-        <div class="alert alert-{{ $notificationType === 'error' ? 'danger' : ($notificationType === 'success' ? 'success' : ($notificationType === 'warning' ? 'warning' : 'info')) }} alert-dismissible fade show position-fixed"
-            style="top: 20px; right: 20px; z-index: 1060; min-width: 300px;" id="realtime-notification">
-            <div class="d-flex align-items-center">
-                @if ($notificationType === 'success')
-                    <i class="fas fa-check-circle me-2"></i>
-                @elseif($notificationType === 'error')
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                @elseif($notificationType === 'warning')
-                    <i class="fas fa-sync-alt me-2"></i>
-                @else
-                    <i class="fas fa-bell me-2"></i>
-                @endif
-                <div class="flex-grow-1">
-                    <strong>{{ $notificationMessage }}</strong>
+        <div class="enhanced-notification animate__animated animate__slideInRight" 
+             id="realtime-notification"
+             style="position: fixed; top: 20px; right: 20px; z-index: 1060; min-width: 350px;">
+            <div class="notification-content alert alert-{{ $notificationType === 'error' ? 'danger' : ($notificationType === 'success' ? 'success' : ($notificationType === 'warning' ? 'warning' : 'info')) }} alert-dismissible fade show">
+                <div class="d-flex align-items-center">
+                    <div class="notification-icon me-3">
+                        @if ($notificationType === 'success')
+                            <i class="fas fa-check-circle fa-lg"></i>
+                        @elseif($notificationType === 'error')
+                            <i class="fas fa-exclamation-triangle fa-lg"></i>
+                        @elseif($notificationType === 'warning')
+                            <i class="fas fa-sync-alt fa-lg"></i>
+                        @else
+                            <i class="fas fa-bell fa-lg"></i>
+                        @endif
+                    </div>
+                    <div class="notification-body flex-grow-1">
+                        <strong class="notification-title">{{ $notificationMessage }}</strong>
+                        <div class="notification-timestamp">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ now()->format('H:i:s') }}
+                            </small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" wire:click="hideNotification" aria-label="Close"></button>
                 </div>
-                <button type="button" class="btn-close" wire:click="hideNotification" aria-label="Close"></button>
             </div>
         </div>
     @endif
 
-    <!-- Header Section -->
-    <div class="text-center mb-4">
-        <h1 class="text-primary mb-3">
-            <i class="fas fa-bed me-2"></i>
-            ศูนย์เปล - โรงพยาบาลหนองหาน
-            <span class="badge bg-success">Real-time</span>
-        </h1>
-
-        @if (session()->has('name'))
-            <div class="d-flex justify-content-center align-items-center mb-3">
-                <div class="card bg-light">
-                    <div class="card-body py-2 px-3">
-                        <span class="text-muted">ผู้ใช้งาน:</span>
-                        <strong class="text-primary">{{ session()->get('name') }}</strong>
-                        @if ($userType === 'team_member')
-                            <span class="badge bg-primary ms-2">ทีมเปล</span>
-                        @else
-                            <span class="badge bg-success ms-2">ผู้ดูแลระบบ</span>
-                        @endif
-
-                        <button type="button" class="btn btn-outline-danger btn-sm ms-3" wire:click="logout">
-                            <i class="fas fa-sign-out-alt me-1"></i>ออกจากระบบ
-                        </button>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <!-- Connection Status Indicator -->
-        <div class="mb-3">
-            <div id="connection-status-container">
-                <span id="connection-status" class="badge bg-secondary">
-                    <i class="fas fa-circle me-1"></i>กำลังเชื่อมต่อ...
-                </span>
-                <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="window.reconnectWebSocket()"
-                    title="เชื่อมต่อใหม่">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-                <button type="button" class="btn btn-outline-info btn-sm ms-1" onclick="window.debugEchoStatus()"
-                    title="ตรวจสอบสถานะ">
-                    <i class="fas fa-bug"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistics Section -->
-    <div class="row mb-4">
-        <div class="col-md-3 col-6 mb-3">
-            <div class="card bg-primary text-white stats-card">
-                <div class="card-body text-center">
-                    <h5 class="card-title">
-                        <i class="fas fa-list me-2"></i><span id="stat-total">{{ $stats['total_today'] }}</span>
-                    </h5>
-                    <p class="card-text mb-0">ขอเปลวันนี้ทั้งหมด</p>
-                </div>
-            </div>
-        </div>
-
-        @if ($currentUserId)
-            <div class="col-md-3 col-6 mb-3">
-                <div class="card bg-success text-white stats-card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">
-                            <i class="fas fa-check me-2"></i><span id="stat-accepted">{{ $stats['my_accepted'] }}</span>
-                        </h5>
-                        <p class="card-text mb-0">ที่คุณรับวันนี้</p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <div class="col-md-2 col-4 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body text-center py-2">
-                    <h6 class="card-title mb-1">
-                        <i class="fas fa-moon me-1"></i>{{ $stats['night_shift'] }}
-                    </h6>
-                    <small class="card-text">ดึก (00:00-07:59)</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-2 col-4 mb-3">
-            <div class="card bg-warning text-dark">
-                <div class="card-body text-center py-2">
-                    <h6 class="card-title mb-1">
-                        <i class="fas fa-sun me-1"></i>{{ $stats['morning_shift'] }}
-                    </h6>
-                    <small class="card-text">เช้า (08:00-16:00)</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-2 col-4 mb-3">
-            <div class="card bg-secondary text-white">
-                <div class="card-body text-center py-2">
-                    <h6 class="card-title mb-1">
-                        <i class="fas fa-cloud-sun me-1"></i>{{ $stats['afternoon_shift'] }}
-                    </h6>
-                    <small class="card-text">บ่าย (16:00-23:59)</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters Section -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" wire:model.live="hideCompleted"
-                            id="hideCompleted">
-                        <label class="form-check-label" for="hideCompleted">
-                            <i class="fas fa-eye-slash me-1"></i>ซ่อนรายการที่สำเร็จแล้ว
-                        </label>
-                    </div>
-
-                    @if ($currentUserId)
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" wire:model.live="showMyOnly"
-                                id="showMyOnly">
-                            <label class="form-check-label" for="showMyOnly">
-                                <i class="fas fa-user me-1"></i>แสดงเฉพาะของคุณ
-                            </label>
+    <!-- Enhanced User Section -->
+    @if (session()->has('name'))
+        <section class="user-section animate__animated animate__fadeInDown">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="user-card">
+                            <div class="user-card-content">
+                                <div class="user-avatar-section">
+                                    <div class="user-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="user-info">
+                                        <h5 class="user-name">{{ session()->get('name') }}</h5>
+                                        <div class="user-badges">
+                                            @if ($userType === 'team_member')
+                                                <span class="badge badge-primary">
+                                                    <i class="fas fa-user-md me-1"></i>ทีมเปล
+                                                </span>
+                                            @else
+                                                <span class="badge badge-admin">
+                                                    <i class="fas fa-user-cog me-1"></i>ผู้ดูแลระบบ
+                                                </span>
+                                            @endif
+                                            <span class="badge badge-online">
+                                                <i class="fas fa-circle me-1"></i>ออนไลน์
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="user-actions">
+                                    <button type="button" class="btn btn-outline-danger" wire:click="logout">
+                                        <i class="fas fa-sign-out-alt me-2"></i>ออกจากระบบ
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    @endif
+                    </div>
+                </div>
+            </div>
+        </section>
+    @endif
+
+    <!-- Enhanced Statistics Section -->
+    <section class="statistics-section animate__animated animate__fadeInUp">
+        <div class="container">
+            <div class="section-header text-center mb-4">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-bar me-2"></i>สถิติการใช้งานวันนี้
+                </h2>
+                <p class="section-subtitle">ข้อมูลการขอเปลแบบเรียลไทม์</p>
+            </div>
+
+            <div class="stats-grid">
+                <!-- Total Requests Today -->
+             {{--    <div class="stat-card main-stat animate__animated animate__zoomIn">
+                    <div class="stat-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ $stats['total_today'] }}</div>
+                        <div class="stat-label">ขอเปลวันนี้ทั้งหมด</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-arrow-up text-success"></i>
+                            <span class="text-success">+12%</span>
+                        </div>
+                    </div>
+                </div> --}}
+
+                @if ($currentUserId)
+                    <!-- My Accepted Requests -->
+                    <div class="stat-card success-stat animate__animated animate__zoomIn" style="animation-delay: 0.1s">
+                        <div class="stat-icon">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number">{{ $stats['my_accepted'] }}</div>
+                            <div class="stat-label">ที่คุณรับวันนี้</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-trophy text-warning"></i>
+                                <span class="text-muted">งานที่สำเร็จ</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Night Shift -->
+                <div class="stat-card info-stat animate__animated animate__zoomIn" style="animation-delay: 0.2s">
+                    <div class="stat-icon">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ $stats['night_shift'] }}</div>
+                        <div class="stat-label">ดึก</div>
+                        <div class="stat-time">00:00-07:59</div>
+                    </div>
                 </div>
 
-                <div class="col-md-6 text-end">
-                    <div class="d-flex align-items-center justify-content-end">
-                        <button type="button" class="btn btn-outline-primary btn-sm me-2" wire:click="loadData">
-                            <i class="fas fa-sync-alt me-1"></i>รีเฟรช
-                        </button>
-                        <small class="text-muted">
-                            <i class="fas fa-wifi me-1"></i>
-                            Real-time |
-                            <span id="last-update">{{ now()->format('H:i:s') }}</span>
-                        </small>
+                <!-- Morning Shift -->
+                <div class="stat-card warning-stat animate__animated animate__zoomIn" style="animation-delay: 0.3s">
+                    <div class="stat-icon">
+                        <i class="fas fa-sun"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ $stats['morning_shift'] }}</div>
+                        <div class="stat-label">เช้า</div>
+                        <div class="stat-time">08:00-16:00</div>
+                    </div>
+                </div>
+
+                <!-- Afternoon Shift -->
+                <div class="stat-card secondary-stat animate__animated animate__zoomIn" style="animation-delay: 0.4s">
+                    <div class="stat-icon">
+                        <i class="fas fa-cloud-sun"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ $stats['afternoon_shift'] }}</div>
+                        <div class="stat-label">บ่าย</div>
+                        <div class="stat-time">16:00-23:59</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Stretcher Requests List -->
-    <div class="row" id="stretcher-requests-grid">
-        @forelse($data as $request)
-            <div class="col-lg-6 col-xl-4 mb-3">
-                <div class="card stretcher-item h-100" id="stretcher-item-{{ $request['stretcher_register_id'] }}"
-                    data-request-id="{{ $request['stretcher_register_id'] }}"
-                    data-status="{{ $request['stretcher_work_status_id'] }}"
-                    data-team="{{ $request['stretcher_team_list_id'] ?? '' }}">
-
-                    <!-- Card Header with Status -->
-                    <div class="card-header d-flex justify-content-between align-items-center p-2">
-                        <div>
-                            @php
-                                $statusConfig = [
-                                    1 => ['class' => 'secondary', 'icon' => 'clock', 'text' => 'รอรับงาน'],
-                                    2 => ['class' => 'warning', 'icon' => 'hand-paper', 'text' => 'รับงานแล้ว'],
-                                    3 => ['class' => 'info', 'icon' => 'running', 'text' => 'กำลังดำเนินการ'],
-                                    4 => ['class' => 'success', 'icon' => 'check-circle', 'text' => 'สำเร็จ'],
-                                    5 => ['class' => 'dark', 'icon' => 'times-circle', 'text' => 'ยกเลิก'],
-                                ];
-                                $status = $statusConfig[$request['stretcher_work_status_id']] ?? $statusConfig[1];
-                            @endphp
-
-                            <span class="badge bg-{{ $status['class'] }} status-badge">
-                                <i class="fas fa-{{ $status['icon'] }} me-1"></i>
-                                {{ $status['text'] }}
-                            </span>
-                        </div>
-
-                        <small class="text-muted">
-                            ID: <strong>{{ $request['stretcher_register_id'] }}</strong>
-                        </small>
-                    </div>
-
-                    <!-- Card Body with Patient Info -->
-                    <div class="card-body stretcher-card p-3">
-                        <div class="row g-2">
-                            <div class="col-4"><strong class="text-primary">HN:</strong></div>
-                            <div class="col-8">{{ $request['hn'] }}</div>
-
-                            <div class="col-4"><strong class="text-primary">ชื่อ-นามสกุล:</strong></div>
-                            <div class="col-8">{{ $request['pname'] }}{{ $request['fname'] }}
-                                {{ $request['lname'] }}</div>
-
-                            <div class="col-4"><strong class="text-primary">ประเภทเปล:</strong></div>
-                            <div class="col-8">{{ $request['stretcher_type_name'] }}</div>
-
-                            @if (!empty($request['stretcher_o2tube_type_name']))
-                                <div class="col-4"><strong class="text-primary">ออกซิเจน:</strong></div>
-                                <div class="col-8">{{ $request['stretcher_o2tube_type_name'] }}</div>
-                            @endif
-
-                            @if (!empty($request['stretcher_emergency_name']))
-                                <div class="col-4"><strong class="text-danger">ฉุกเฉิน:</strong></div>
-                                <div class="col-8 text-danger">{{ $request['stretcher_emergency_name'] }}</div>
-                            @endif
-
-                            <div class="col-4"><strong class="text-primary">ความเร่งด่วน:</strong></div>
-                            <div
-                                class="col-8 {{ in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']) ? 'urgent-text fw-bold' : '' }}">
-                                {{ $request['stretcher_priority_name'] }}
-                                @if (in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']))
-                                    <i class="fas fa-exclamation-triangle ms-1 text-danger"></i>
-                                @endif
+    <!-- Enhanced Filter Section -->
+    <section class="filter-section animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+        <div class="container">
+            <div class="filter-card">
+                <div class="filter-header">
+                    <h4 class="filter-title">
+                        <i class="fas fa-filter me-2"></i>ตัวกรองข้อมูล
+                    </h4>
+                </div>
+                <div class="filter-body">
+                    <div class="filter-controls">
+                        <div class="filter-left">
+                            <div class="form-check-enhanced">
+                                <input class="form-check-input" type="checkbox" wire:model.live="hideCompleted" id="hideCompleted">
+                                <label class="form-check-label" for="hideCompleted">
+                                    <i class="fas fa-eye-slash me-2"></i>ซ่อนรายการที่สำเร็จแล้ว
+                                </label>
                             </div>
 
-                            <div class="col-4"><strong class="text-primary">ผู้ขอเปล:</strong></div>
-                            <div class="col-8">{{ $request['dname'] }}</div>
-
-                            <div class="col-4"><strong class="text-primary">จากแผนก:</strong></div>
-                            <div class="col-8">{{ $request['department'] }}</div>
-
-                            <div class="col-4"><strong class="text-primary">ไปแผนก:</strong></div>
-                            <div class="col-8">{{ $request['department2'] }}</div>
-
-                            @if (!empty($request['from_note']))
-                                <div class="col-4"><strong class="text-danger">หมายเหตุ (1):</strong></div>
-                                <div class="col-8">{{ $request['from_note'] }}</div>
+                            @if ($currentUserId)
+                                <div class="form-check-enhanced">
+                                    <input class="form-check-input" type="checkbox" wire:model.live="showMyOnly" id="showMyOnly">
+                                    <label class="form-check-label" for="showMyOnly">
+                                        <i class="fas fa-user me-2"></i>แสดงเฉพาะของคุณ
+                                    </label>
+                                </div>
                             @endif
+                        </div>
 
-                            @if (!empty($request['send_note']))
-                                <div class="col-4"><strong class="text-danger">หมายเหตุ (2):</strong></div>
-                                <div class="col-8">{{ $request['send_note'] }}</div>
-                            @endif
+                        <div class="filter-right">
+                            <div class="filter-actions">
+                                <button type="button" class="btn btn-refresh" wire:click="loadData" 
+                                        wire:loading.attr="disabled" wire:target="loadData">
+                                    <span wire:loading.remove wire:target="loadData">
+                                        <i class="fas fa-sync-alt me-2"></i>รีเฟรช
+                                    </span>
+                                    <span wire:loading wire:target="loadData">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลด...
+                                    </span>
+                                </button>
+                                <div class="realtime-status">
+                                    <i class="fas fa-wifi me-1 text-success"></i>
+                                    <span class="status-text">Real-time</span>
+                                    <div class="status-divider">|</div>
+                                    <span class="last-update">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <span id="last-update">{{ now()->format('H:i:s') }}</span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-                    <!-- Card Footer with Actions and Time -->
-                    <div class="card-footer p-2">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="text-muted time-display">
-                                <i class="fas fa-clock me-1"></i>
-                                {{ \Carbon\Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])->diffForHumans() }}
-                            </small>
+    <!-- Enhanced Stretcher Requests Grid -->
+    <section class="stretcher-requests-section">
+        <div class="container">
+            <div class="section-header text-center mb-4">
+                <h2 class="section-title">
+                    <i class="fas fa-bed me-2"></i>รายการขอเปล
+                </h2>
+                <p class="section-subtitle">
+                    รายการทั้งหมด {{ count($data) }} รายการ | 
+                    อัปเดตแบบเรียลไทม์
+                </p>
+            </div>
 
-                            @if (!empty($request['name']))
-                                <small class="text-info team-member">
-                                    <i class="fas fa-user me-1"></i>{{ $request['name'] }}
-                                </small>
-                            @endif
-                        </div>
+            <div class="stretcher-grid" id="stretcher-requests-grid">
+                @forelse($data as $index => $request)
+                    <div class="stretcher-card-wrapper animate__animated animate__fadeInUp" 
+                         style="animation-delay: {{ $index * 0.1 }}s">
+                        <div class="stretcher-card {{ $this->getPriorityClass($request['stretcher_priority_name']) }} {{ $this->getUrgencyClass($request) }}" 
+                             id="stretcher-item-{{ $request['stretcher_register_id'] }}"
+                             data-request-id="{{ $request['stretcher_register_id'] }}"
+                             data-status="{{ $request['stretcher_work_status_id'] }}"
+                             data-team="{{ $request['stretcher_team_list_id'] ?? '' }}">
 
-                        <!-- Action Buttons -->
-                        @if ($currentUserId && $userType === 'team_member')
-                            @if (empty($request['stretcher_team_list_id']) && $request['stretcher_work_status_id'] == 1)
-                                @if ($pendingWorkCount <= 0)
-                                    <div class="d-grid">
-                                        <button type="button" class="btn btn-primary btn-sm accept-btn"
-                                            wire:click="acceptRequest({{ $request['stretcher_register_id'] }})"
-                                            wire:loading.attr="disabled"
-                                            wire:target="acceptRequest({{ $request['stretcher_register_id'] }})"
-                                            data-request-id="{{ $request['stretcher_register_id'] }}">
-                                            <span wire:loading.remove
-                                                wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
-                                                <i class="fas fa-hand-paper me-1"></i>รับงาน
-                                            </span>
-                                            <span wire:loading
-                                                wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
-                                                <i class="fas fa-spinner fa-spin me-1"></i>กำลังรับงาน...
-                                            </span>
-                                        </button>
+                            <!-- Enhanced Card Header -->
+                            <div class="stretcher-card-header">
+                                <div class="header-left">
+                                    @php
+                                        $statusConfig = [
+                                            1 => ['class' => 'waiting', 'icon' => 'clock', 'text' => 'รอรับงาน'],
+                                            2 => ['class' => 'accepted', 'icon' => 'hand-paper', 'text' => 'รับงานแล้ว'],
+                                            3 => ['class' => 'progress', 'icon' => 'running', 'text' => 'กำลังดำเนินการ'],
+                                            4 => ['class' => 'completed', 'icon' => 'check-circle', 'text' => 'สำเร็จ'],
+                                            5 => ['class' => 'cancelled', 'icon' => 'times-circle', 'text' => 'ยกเลิก'],
+                                        ];
+                                        $status = $statusConfig[$request['stretcher_work_status_id']] ?? $statusConfig[1];
+                                    @endphp
+
+                                    <span class="status-badge status-{{ $status['class'] }}">
+                                        <i class="fas fa-{{ $status['icon'] }}"></i>
+                                        <span>{{ $status['text'] }}</span>
+                                    </span>
+
+                                    @if (in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']))
+                                        <span class="priority-indicator urgent">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="header-right">
+                                    <span class="request-id">
+                                        <i class="fas fa-hashtag"></i>{{ $request['stretcher_register_id'] }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Enhanced Card Body -->
+                            <div class="stretcher-card-body">
+                                <div class="patient-section">
+                                    <div class="patient-header">
+                                        <h5 class="patient-name">
+                                            <i class="fas fa-user me-2"></i>
+                                            {{ $request['pname'] }}{{ $request['fname'] }} {{ $request['lname'] }}
+                                        </h5>
+                                        <span class="patient-hn">HN: {{ $request['hn'] }}</span>
                                     </div>
-                                @else
-                                    <div class="d-grid">
-                                        <button class="btn btn-danger btn-sm" disabled>
-                                            <i class="fas fa-exclamation-triangle me-1"></i>คุณมีงานค้างอยู่
-                                        </button>
+
+                                    <div class="patient-info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">
+                                                <i class="fas fa-bed"></i>ประเภทเปล
+                                            </span>
+                                            <span class="info-value">{{ $request['stretcher_type_name'] }}</span>
+                                        </div>
+
+                                        @if (!empty($request['stretcher_o2tube_type_name']))
+                                            <div class="info-item">
+                                                <span class="info-label">
+                                                    <i class="fas fa-lungs"></i>ออกซิเจน
+                                                </span>
+                                                <span class="info-value">{{ $request['stretcher_o2tube_type_name'] }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if (!empty($request['stretcher_emergency_name']))
+                                            <div class="info-item emergency">
+                                                <span class="info-label">
+                                                    <i class="fas fa-exclamation-triangle"></i>ฉุกเฉิน
+                                                </span>
+                                                <span class="info-value">{{ $request['stretcher_emergency_name'] }}</span>
+                                            </div>
+                                        @endif
+
+                                        <div class="info-item {{ in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']) ? 'priority-urgent' : '' }}">
+                                            <span class="info-label">
+                                                <i class="fas fa-tachometer-alt"></i>ความเร่งด่วน
+                                            </span>
+                                            <span class="info-value">
+                                                {{ $request['stretcher_priority_name'] }}
+                                                @if (in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']))
+                                                    <i class="fas fa-fire ms-1"></i>
+                                                @endif
+                                            </span>
+                                        </div>
+
+                                        <div class="info-item">
+                                            <span class="info-label">
+                                                <i class="fas fa-user-md"></i>ผู้ขอเปล
+                                            </span>
+                                            <span class="info-value">{{ $request['dname'] }}</span>
+                                        </div>
+
+                                        <div class="info-item">
+                                            <span class="info-label">
+                                                <i class="fas fa-map-marker-alt"></i>จากแผนก
+                                            </span>
+                                            <span class="info-value">{{ $request['department'] }}</span>
+                                        </div>
+
+                                        <div class="info-item">
+                                            <span class="info-label">
+                                                <i class="fas fa-arrow-right"></i>ไปแผนก
+                                            </span>
+                                            <span class="info-value">{{ $request['department2'] }}</span>
+                                        </div>
+
+                                        @if (!empty($request['from_note']))
+                                            <div class="info-item note">
+                                                <span class="info-label">
+                                                    <i class="fas fa-sticky-note"></i>หมายเหตุ (1)
+                                                </span>
+                                                <span class="info-value">{{ $request['from_note'] }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if (!empty($request['send_note']))
+                                            <div class="info-item note">
+                                                <span class="info-label">
+                                                    <i class="fas fa-comment"></i>หมายเหตุ (2)
+                                                </span>
+                                                <span class="info-value">{{ $request['send_note'] }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Enhanced Card Footer -->
+                            <div class="stretcher-card-footer">
+                                <div class="footer-info">
+                                    <div class="time-info">
+                                        <i class="fas fa-clock"></i>
+                                        <span class="time-text">
+                                            {{ \Carbon\Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])->diffForHumans() }}
+                                        </span>
+                                    </div>
+
+                                    @if (!empty($request['name']))
+                                        <div class="team-info">
+                                            <i class="fas fa-user-check"></i>
+                                            <span class="team-name">{{ $request['name'] }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <!-- Enhanced Action Buttons -->
+                                @if ($currentUserId && $userType === 'team_member')
+                                    <div class="action-buttons">
+                                        @if (empty($request['stretcher_team_list_id']) && $request['stretcher_work_status_id'] == 1)
+                                            @if ($pendingWorkCount <= 0)
+                                                <button type="button" class="btn btn-action btn-accept"
+                                                        wire:click="acceptRequest({{ $request['stretcher_register_id'] }})"
+                                                        wire:loading.attr="disabled"
+                                                        wire:target="acceptRequest({{ $request['stretcher_register_id'] }})"
+                                                        data-request-id="{{ $request['stretcher_register_id'] }}">
+                                                    <span class="btn-content" wire:loading.remove wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
+                                                        <i class="fas fa-hand-paper"></i>
+                                                        <span>รับงาน</span>
+                                                    </span>
+                                                    <span class="btn-loading" wire:loading wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
+                                                        <i class="fas fa-spinner fa-spin"></i>
+                                                        <span>กำลังรับงาน...</span>
+                                                    </span>
+                                                </button>
+                                            @else
+                                                <button class="btn btn-action btn-disabled" disabled>
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    <span>คุณมีงานค้างอยู่</span>
+                                                </button>
+                                            @endif
+                                        @elseif($request['stretcher_team_list_id'] == $currentUserId && $request['stretcher_work_status_id'] == 2)
+                                            <button type="button" class="btn btn-action btn-progress"
+                                                    wire:click="sendToPatient({{ $request['stretcher_register_id'] }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
+                                                <span class="btn-content" wire:loading.remove wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
+                                                    <i class="fas fa-running"></i>
+                                                    <span>ไปรับผู้ป่วย</span>
+                                                </span>
+                                                <span class="btn-loading" wire:loading wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
+                                                    <i class="fas fa-spinner fa-spin"></i>
+                                                    <span>กำลังอัปเดต...</span>
+                                                </span>
+                                            </button>
+                                        @elseif($request['stretcher_team_list_id'] == $currentUserId && $request['stretcher_work_status_id'] == 3)
+                                            <button type="button" class="btn btn-action btn-complete"
+                                                    wire:click="completeTask({{ $request['stretcher_register_id'] }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="completeTask({{ $request['stretcher_register_id'] }})">
+                                                <span class="btn-content" wire:loading.remove wire:target="completeTask({{ $request['stretcher_register_id'] }})">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    <span>งานสำเร็จ</span>
+                                                </span>
+                                                <span class="btn-loading" wire:loading wire:target="completeTask({{ $request['stretcher_register_id'] }})">
+                                                    <i class="fas fa-spinner fa-spin"></i>
+                                                    <span>กำลังบันทึก...</span>
+                                                </span>
+                                            </button>
+                                        @endif
                                     </div>
                                 @endif
-                            @elseif($request['stretcher_team_list_id'] == $currentUserId && $request['stretcher_work_status_id'] == 2)
-                                <div class="d-grid">
-                                    <button type="button" class="btn btn-info btn-sm text-white"
-                                        wire:click="sendToPatient({{ $request['stretcher_register_id'] }})"
-                                        wire:loading.attr="disabled">
-                                        <span wire:loading.remove>
-                                            <i class="fas fa-running me-1"></i>ไปรับผู้ป่วย
-                                        </span>
-                                        <span wire:loading>
-                                            <i class="fas fa-spinner fa-spin me-1"></i>กำลังอัปเดต...
-                                        </span>
-                                    </button>
-                                </div>
-                            @elseif($request['stretcher_team_list_id'] == $currentUserId && $request['stretcher_work_status_id'] == 3)
-                                <div class="d-grid">
-                                    <button type="button" class="btn btn-success btn-sm"
-                                        wire:click="completeTask({{ $request['stretcher_register_id'] }})"
-                                        wire:loading.attr="disabled">
-                                        <span wire:loading.remove>
-                                            <i class="fas fa-check-circle me-1"></i>งานสำเร็จ
-                                        </span>
-                                        <span wire:loading>
-                                            <i class="fas fa-spinner fa-spin me-1"></i>กำลังบันทึก...
-                                        </span>
-                                    </button>
-                                </div>
-                            @endif
-                        @endif
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        @empty
-            <div class="col-12">
-                <div class="text-center py-5">
-                    <div class="mb-3">
-                        <i class="fas fa-bed fa-3x text-muted"></i>
+                @empty
+                    <div class="empty-state animate__animated animate__fadeIn">
+                        <div class="empty-state-content">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-bed"></i>
+                            </div>
+                            <h4 class="empty-state-title">ไม่มีข้อมูลการขอเปล</h4>
+                            <p class="empty-state-description">ยังไม่มีรายการขอเปลสำหรับวันนี้</p>
+                            <button class="btn btn-primary" wire:click="loadData">
+                                <i class="fas fa-refresh me-2"></i>รีเฟรชข้อมูล
+                            </button>
+                        </div>
                     </div>
-                    <h5 class="text-muted">ไม่มีข้อมูลการขอเปล</h5>
-                    <p class="text-muted">ยังไม่มีรายการขอเปลสำหรับวันนี้</p>
-                </div>
+                @endforelse
             </div>
-        @endforelse
-    </div>
 
-    <!-- Loading Indicator -->
-    <div wire:loading.flex wire:target="loadData" class="justify-content-center py-3">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">กำลังโหลด...</span>
+            <!-- Enhanced Loading Indicator -->
+            <div class="loading-section" wire:loading.flex wire:target="loadData">
+                <div class="loading-content">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                    <p class="loading-text">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 </div>
 
 @push('scripts')
     <script>
-        // ===================================================================
-        // 🎯 Enhanced Real-time Stretcher Management System
-        // Laravel Echo + Livewire Integration with Better Refresh
-        // ===================================================================
-
+        // Enhanced Real-time Stretcher Management System with improved error handling
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing Enhanced Real-time Stretcher System...');
+            console.log('🚀 Enhanced Stretcher Manager initializing...');
 
-            let isConnected = false;
-            let reconnectAttempts = 0;
-            const maxReconnectAttempts = 5;
-            let refreshTimeout;
-
-            // ===================================================================
-            // 🔌 Enhanced Echo Connection Management
-            // ===================================================================
-
-            function initializeEchoConnection() {
-                if (typeof window.Echo === 'undefined') {
-                    console.warn('⚠️ Laravel Echo not available');
-                    updateConnectionStatus('no-echo');
-                    return;
-                }
-
-                console.log('📡 Laravel Echo available, checking connection...');
-
-                if (window.Echo.connector && window.Echo.connector.pusher) {
-                    const pusher = window.Echo.connector.pusher;
-
-                    pusher.connection.bind('connected', () => {
-                        console.log('✅ WebSocket connected successfully');
-                        updateConnectionStatus('connected');
-                        isConnected = true;
-                        reconnectAttempts = 0;
-                    });
-
-                    pusher.connection.bind('disconnected', () => {
-                        console.log('❌ WebSocket disconnected');
-                        updateConnectionStatus('disconnected');
-                        isConnected = false;
-                        attemptReconnection();
-                    });
-
-                    pusher.connection.bind('error', (error) => {
-                        console.error('❌ WebSocket error:', error);
-                        updateConnectionStatus('error');
-                        isConnected = false;
-                        attemptReconnection();
-                    });
-
-                    pusher.connection.bind('unavailable', () => {
-                        console.warn('⚠️ WebSocket unavailable');
-                        updateConnectionStatus('unavailable');
-                        isConnected = false;
-                        attemptReconnection();
-                    });
-
-                    const state = pusher.connection.state;
-                    console.log('Initial connection state:', state);
-                    updateConnectionStatus(state);
-                    isConnected = (state === 'connected');
-                }
-            }
-
-            function attemptReconnection() {
-                if (reconnectAttempts < maxReconnectAttempts) {
-                    reconnectAttempts++;
-                    const delay = Math.pow(2, reconnectAttempts) * 1000;
-
-                    console.log(`🔄 Attempting reconnection #${reconnectAttempts} in ${delay}ms...`);
-                    updateConnectionStatus('reconnecting');
-
-                    setTimeout(() => {
-                        if (window.Echo && window.Echo.connector && window.Echo.connector.pusher) {
-                            window.Echo.connector.pusher.connect();
-                        }
-                    }, delay);
-                } else {
-                    console.error('❌ Max reconnection attempts reached');
-                    updateConnectionStatus('failed');
-                }
-            }
-
-            function updateConnectionStatus(status) {
-                const statusElement = document.getElementById('connection-status');
-                if (!statusElement) return;
-
-                const statusConfig = {
-                    'connected': {
-                        class: 'bg-success',
-                        text: 'เชื่อมต่อแล้ว',
-                        icon: 'wifi'
-                    },
-                    'connecting': {
-                        class: 'bg-warning text-dark',
-                        text: 'กำลังเชื่อมต่อ',
-                        icon: 'spinner fa-spin'
-                    },
-                    'disconnected': {
-                        class: 'bg-danger',
-                        text: 'ขาดการเชื่อมต่อ',
-                        icon: 'wifi-slash'
-                    },
-                    'reconnecting': {
-                        class: 'bg-warning text-dark',
-                        text: 'กำลังเชื่อมต่อใหม่',
-                        icon: 'sync fa-spin'
-                    },
-                    'error': {
-                        class: 'bg-danger',
-                        text: 'เกิดข้อผิดพลาด',
-                        icon: 'exclamation-triangle'
-                    },
-                    'unavailable': {
-                        class: 'bg-secondary',
-                        text: 'ไม่พร้อมใช้งาน',
-                        icon: 'cloud-slash'
-                    },
-                    'failed': {
-                        class: 'bg-dark',
-                        text: 'เชื่อมต่อไม่ได้',
-                        icon: 'times-circle'
-                    },
-                    'no-echo': {
-                        class: 'bg-info',
-                        text: 'โหมดพื้นฐาน',
-                        icon: 'info-circle'
-                    }
+            // Helper method to get priority class
+            window.getPriorityClass = function(priority) {
+                const priorityClasses = {
+                    'ด่วนที่สุด': 'priority-critical',
+                    'ด่วน': 'priority-urgent', 
+                    'ปกติ': 'priority-normal'
                 };
-
-                const config = statusConfig[status] || statusConfig['error'];
-                statusElement.className = `badge ${config.class}`;
-                statusElement.innerHTML = `<i class="fas fa-${config.icon} me-1"></i>${config.text}`;
-            }
-
-            // ===================================================================
-            // 🔄 Enhanced Refresh Functions
-            // ===================================================================
-
-            function forceRefreshData() {
-                console.log('🔄 Force refresh data triggered');
-
-                // Clear any existing timeout
-                if (refreshTimeout) {
-                    clearTimeout(refreshTimeout);
-                }
-
-                // Call Livewire method multiple ways to ensure it works (Livewire v3 compatible)
-                try {
-                    let refreshed = false;
-
-                    // Method 1: Using $wire if available (Livewire v3 preferred)
-                    if (typeof $wire !== 'undefined') {
-                        $wire.call('forceRefresh');
-                        console.log('✅ Called forceRefresh via $wire');
-                        refreshed = true;
-                    }
-
-                    // Method 2: Direct method call via Livewire.all()
-                    if (!refreshed && typeof Livewire !== 'undefined' && Livewire.all && Livewire.all().length >
-                        0) {
-                        const component = Livewire.all()[0];
-                        if (component && component.call) {
-                            component.call('forceRefresh');
-                            console.log('✅ Called forceRefresh via Livewire.all()');
-                            refreshed = true;
-                        }
-                    }
-
-                    // Method 3: Using Livewire.dispatch for v3
-                    if (!refreshed && typeof Livewire !== 'undefined' && typeof Livewire.dispatch === 'function') {
-                        Livewire.dispatch('refreshData');
-                        console.log('✅ Dispatched refreshData via Livewire.dispatch');
-                        refreshed = true;
-                    }
-
-                    // Method 4: Try window.Livewire.dispatch
-                    if (!refreshed && typeof window.Livewire !== 'undefined' && typeof window.Livewire.dispatch ===
-                        'function') {
-                        window.Livewire.dispatch('refreshData');
-                        console.log('✅ Dispatched via window.Livewire.dispatch');
-                        refreshed = true;
-                    }
-
-                    if (!refreshed) {
-                        console.warn('⚠️ No Livewire refresh method worked, trying alternative...');
-
-                        // Try to find component by wire:id
-                        const wireElements = document.querySelectorAll('[wire\\:id]');
-                        if (wireElements.length > 0) {
-                            const wireId = wireElements[0].getAttribute('wire:id');
-                            if (wireId && typeof Livewire !== 'undefined' && Livewire.find) {
-                                const component = Livewire.find(wireId);
-                                if (component && component.call) {
-                                    component.call('forceRefresh');
-                                    console.log('✅ Called via Livewire.find()');
-                                    refreshed = true;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!refreshed) {
-                        throw new Error('All refresh methods failed');
-                    }
-
-                } catch (error) {
-                    console.error('❌ Error calling refresh:', error);
-
-                    // Fallback: Page reload if all else fails
-                    console.log('🔄 Fallback: Reloading page in 3 seconds...');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                }
-
-                updateLastUpdateTime();
-            }
-
-            function smartRefresh() {
-                // Prevent too frequent refreshes
-                if (refreshTimeout) {
-                    clearTimeout(refreshTimeout);
-                }
-
-                refreshTimeout = setTimeout(() => {
-                    forceRefreshData();
-                }, 500); // Debounce 500ms
-            }
-
-            // ===================================================================
-            // 🎵 Audio and Visual Effects
-            // ===================================================================
-
-            function playNotificationSound() {
-                const audio = document.getElementById('notification-sound');
-                if (audio) {
-                    audio.currentTime = 0;
-                    audio.play().catch(e => {
-                        console.log('Could not play notification sound:', e.message);
-                    });
-                }
-            }
-
-            function highlightStretcherItem(stretcherId, color = '#28a745', duration = 3000) {
-                const item = document.getElementById(`stretcher-item-${stretcherId}`);
-                if (!item) {
-                    console.warn(`⚠️ Stretcher item ${stretcherId} not found for highlighting`);
-                    return;
-                }
-
-                const originalStyle = {
-                    border: item.style.border,
-                    backgroundColor: item.style.backgroundColor,
-                    boxShadow: item.style.boxShadow,
-                    transform: item.style.transform
-                };
-
-                // Apply highlight with animation
-                item.style.border = `3px solid ${color}`;
-                item.style.backgroundColor = `${color}20`;
-                item.style.boxShadow = `0 0 20px ${color}40`;
-                item.style.transform = 'scale(1.02)';
-                item.style.transition = 'all 0.3s ease';
-
-                // Scroll to item
-                item.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                });
-
-                // Remove highlight after duration
-                setTimeout(() => {
-                    Object.keys(originalStyle).forEach(key => {
-                        item.style[key] = originalStyle[key];
-                    });
-                }, duration);
-            }
-
-            function updateAcceptButtons(requestId, isAccepted = true) {
-                const buttons = document.querySelectorAll(`[data-request-id="${requestId}"] .accept-btn`);
-                buttons.forEach(btn => {
-                    if (isAccepted) {
-                        btn.disabled = true;
-                        btn.innerHTML = '<i class="fas fa-check me-1"></i>มีคนรับแล้ว';
-                        btn.className = 'btn btn-secondary btn-sm';
-                    }
-                });
-            }
-
-            function showToast(title, message, type = 'info', duration = 3000) {
-                if (typeof Swal !== 'undefined') {
-                    const Toast = Swal.mixin({
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: duration,
-                        timerProgressBar: true,
-                        didOpen: (toast) => {
-                            toast.addEventListener('mouseenter', Swal.stopTimer)
-                            toast.addEventListener('mouseleave', Swal.resumeTimer)
-                        }
-                    });
-
-                    Toast.fire({
-                        icon: type,
-                        title: title,
-                        text: message
-                    });
-                }
-            }
-
-            // ===================================================================
-            // 🎯 Enhanced Livewire Event Listeners
-            // ===================================================================
-
-            // Job accepted successfully
-            window.addEventListener('job-accepted-successfully', (e) => {
-                console.log('✅ Job accepted successfully:', e.detail);
-
-                const {
-                    requestId,
-                    teamMember,
-                    timestamp
-                } = e.detail;
-
-                // Visual feedback
-                highlightStretcherItem(requestId, '#28a745');
-                updateAcceptButtons(requestId, true);
-
-                // Show success notification
-                showToast('รับงานสำเร็จ', `${teamMember} รับงาน ID: ${requestId}`, 'success');
-
-                // Play sound
-                playNotificationSound();
-
-                // Force refresh after a short delay
-                setTimeout(() => {
-                    forceRefreshData();
-                }, 1000);
-            });
-
-            // Data refreshed event
-            window.addEventListener('data-refreshed', (e) => {
-                console.log('🔄 Data refreshed:', e.detail);
-
-                const {
-                    timestamp,
-                    count
-                } = e.detail;
-
-                // Update last update time
-                updateLastUpdateTime();
-
-                // Show subtle notification
-                console.log(`✅ Data refreshed at ${timestamp}, ${count} items loaded`);
-            });
-
-            // Delayed refresh event
-            window.addEventListener('delayed-refresh', (e) => {
-                console.log('⏰ Delayed refresh triggered:', e.detail);
-
-                const delay = e.detail.delay || 1000;
-
-                setTimeout(() => {
-                    forceRefreshData();
-                }, delay);
-            });
-
-            // Stretcher item updated
-            window.addEventListener('stretcher-item-updated', (e) => {
-                console.log('🔄 Stretcher item updated:', e.detail);
-
-                const {
-                    stretcherId,
-                    action,
-                    teamMember
-                } = e.detail;
-
-                const colors = {
-                    'accepted': '#28a745', // green
-                    'sent': '#17a2b8', // blue
-                    'completed': '#6f42c1' // purple
-                };
-
-                const actionTexts = {
-                    'accepted': 'รับงาน',
-                    'sent': 'ไปรับผู้ป่วย',
-                    'completed': 'งานสำเร็จ'
-                };
-
-                const color = colors[action] || '#ffc107';
-
-                highlightStretcherItem(stretcherId, color);
-                showToast('อัปเดตสถานะ',
-                    `${teamMember} ${actionTexts[action]} รายการ ${stretcherId}`,
-                    'info');
-
-                // Refresh data after visual effect
-                setTimeout(() => {
-                    smartRefresh();
-                }, 1500);
-            });
-
-            // New request arrived
-            window.addEventListener('new-request-arrived', (e) => {
-                console.log('🔔 New request arrived:', e.detail);
-
-                const {
-                    request
-                } = e.detail;
-
-                // Play notification sound
-                playNotificationSound();
-
-                // Show detailed notification
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'มีรายการขอเปลใหม่!',
-                        html: `
-                    <div class="text-start">
-                        <strong>HN:</strong> ${request.hn}<br>
-                        <strong>ชื่อ:</strong> ${request.pname}${request.fname} ${request.lname}<br>
-                        <strong>ความเร่งด่วน:</strong> <span class="text-danger">${request.stretcher_priority_name}</span><br>
-                        <strong>จากแผนก:</strong> ${request.department}<br>
-                        <strong>ไปแผนก:</strong> ${request.department2}
-                    </div>
-                `,
-                        icon: 'info',
-                        confirmButtonText: 'รับทราบ',
-                        timer: 8000,
-                        timerProgressBar: true,
-                        showClass: {
-                            popup: 'animate__animated animate__fadeInDown'
-                        }
-                    });
-                }
-
-                // Refresh data
-                smartRefresh();
-            });
-
-            // Status change detected
-            window.addEventListener('status-change-detected', (e) => {
-                console.log('📊 Status change detected:', e.detail);
-
-                const {
-                    stretcherId,
-                    newStatus,
-                    teamMember
-                } = e.detail;
-
-                const colors = {
-                    1: '#6c757d', // waiting - gray
-                    2: '#ffc107', // accepted - yellow  
-                    3: '#17a2b8', // in progress - blue
-                    4: '#28a745', // completed - green
-                    5: '#dc3545' // cancelled - red
-                };
-
-                const color = colors[newStatus] || '#6c757d';
-
-                highlightStretcherItem(stretcherId, color);
-
-                showToast('เปลี่ยนสถานะ',
-                    `${teamMember} เปลี่ยนสถานะรายการ ${stretcherId}`,
-                    'warning');
-
-                // Refresh data after visual effect
-                setTimeout(() => {
-                    smartRefresh();
-                }, 1500);
-            });
-
-            // Auto-hide notification
-            window.addEventListener('auto-hide-notification', (e) => {
-                const delay = e.detail.delay || 5000;
-                setTimeout(() => {
-                    // Use Livewire v3 compatible method
-                    try {
-                        if (typeof $wire !== 'undefined') {
-                            $wire.call('hideNotification');
-                        } else if (typeof Livewire !== 'undefined' && Livewire.all && Livewire.all()
-                            .length > 0) {
-                            const component = Livewire.all()[0];
-                            if (component && component.call) {
-                                component.call('hideNotification');
-                            }
-                        }
-                    } catch (error) {
-                        console.warn('Could not hide notification:', error.message);
-                    }
-                }, delay);
-            });
-
-            // ===================================================================
-            // 🕒 Time Management
-            // ===================================================================
-
-            function updateLastUpdateTime() {
-                const timeElement = document.getElementById('last-update');
-                if (timeElement) {
-                    timeElement.textContent = new Date().toLocaleTimeString('th-TH');
-                }
-            }
-
-            // Update time every 30 seconds
-            setInterval(updateLastUpdateTime, 30000);
-
-            // ===================================================================
-            // 🌐 Enhanced Global Functions
-            // ===================================================================
-
-            // Manual WebSocket reconnection
-            window.reconnectWebSocket = function() {
-                if (window.Echo && window.Echo.connector && window.Echo.connector.pusher) {
-                    console.log('🔌 Manual reconnection triggered');
-                    reconnectAttempts = 0;
-                    window.Echo.connector.pusher.connect();
-                    updateConnectionStatus('connecting');
-                } else {
-                    console.error('❌ Echo not available for reconnection');
-                }
+                return priorityClasses[priority] || 'priority-normal';
             };
 
-            // Debug Echo status
-            window.debugEchoStatus = function() {
-                console.log('=== 🔍 Enhanced Echo Debug Info ===');
-                console.log('Echo available:', typeof window.Echo !== 'undefined');
-                console.log('Livewire available:', typeof Livewire !== 'undefined');
-                console.log('$wire available:', typeof $wire !== 'undefined');
-
-                if (window.Echo) {
-                    console.log('Connector available:', typeof window.Echo.connector !== 'undefined');
-
-                    if (window.Echo.connector && window.Echo.connector.pusher) {
-                        const pusher = window.Echo.connector.pusher;
-                        console.log('Connection state:', pusher.connection.state);
-                        console.log('Socket ID:', pusher.connection.socket_id);
-                        console.log('Is connected:', isConnected);
-                        console.log('Reconnect attempts:', reconnectAttempts);
-
-                        try {
-                            console.log('Active channels:', Object.keys(pusher.channels.channels));
-                        } catch (e) {
-                            console.warn('Could not get channel info:', e.message);
-                        }
-                    }
+            // Helper method to get urgency class  
+            window.getUrgencyClass = function(request) {
+                if (request.stretcher_emergency_name || 
+                    ['ด่วนที่สุด', 'ด่วน'].includes(request.stretcher_priority_name)) {
+                    return 'urgent-request';
                 }
-
-                if (typeof Livewire !== 'undefined') {
-                    console.log('Livewire components:', Livewire.all().length);
-                }
-
-                console.log('======================');
-
-                // Show alert with debug info
-                if (typeof Swal !== 'undefined') {
-                    const echoAvailable = typeof window.Echo !== 'undefined';
-                    const livewireAvailable = typeof Livewire !== 'undefined';
-                    const connectionState = window.Echo?.connector?.pusher?.connection?.state || 'N/A';
-
-                    Swal.fire({
-                        title: 'Enhanced Debug Info',
-                        html: `
-                    <div class="text-start">
-                        <strong>Echo Available:</strong> ${echoAvailable ? 'Yes' : 'No'}<br>
-                        <strong>Livewire Available:</strong> ${livewireAvailable ? 'Yes' : 'No'}<br>
-                        <strong>Connection State:</strong> ${connectionState}<br>
-                        <strong>Is Connected:</strong> ${isConnected ? 'Yes' : 'No'}<br>
-                        <strong>Reconnect Attempts:</strong> ${reconnectAttempts}/${maxReconnectAttempts}<br>
-                        <strong>Components:</strong> ${livewireAvailable ? Livewire.all().length : 'N/A'}
-                    </div>
-                `,
-                        icon: 'info',
-                        confirmButtonText: 'ตกลง'
-                    });
-                }
+                return '';
             };
 
-            // Enhanced force refresh
-            window.forceRefresh = function() {
-                console.log('🔄 Enhanced manual refresh triggered');
-                forceRefreshData();
-            };
-
-            // Test refresh function
-            window.testRefresh = function() {
-                console.log('🧪 Testing refresh methods...');
-
-                try {
-                    forceRefreshData();
-                    showToast('Test Refresh', 'Refresh test completed', 'info');
-                } catch (error) {
-                    console.error('❌ Test refresh failed:', error);
-                    showToast('Test Failed', 'Refresh test failed', 'error');
-                }
-            };
-
-            // ===================================================================
-            // 🚀 Enhanced Initialize Everything
-            // ===================================================================
-
-            // Initialize Echo connection
-            initializeEchoConnection();
-
-            // Set initial update time
-            updateLastUpdateTime();
-
-            // Enhanced connection monitoring
-            setInterval(() => {
-                if (window.Echo && window.Echo.connector && window.Echo.connector.pusher) {
-                    const currentState = window.Echo.connector.pusher.connection.state;
-                    const wasConnected = isConnected;
-                    isConnected = (currentState === 'connected');
-
-                    if (wasConnected !== isConnected) {
-                        updateConnectionStatus(currentState);
-
-                        // If reconnected, refresh data
-                        if (isConnected && !wasConnected) {
-                            console.log('🔄 Reconnected - refreshing data...');
-                            setTimeout(() => {
-                                forceRefreshData();
-                            }, 1000);
-                        }
-                    }
-                }
-            }, 5000);
-
-            // Periodic refresh every 2 minutes as fallback
-            setInterval(() => {
-                console.log('🕐 Periodic refresh (fallback)');
-                smartRefresh();
-            }, 120000);
-
-            console.log('✅ Enhanced Real-time Stretcher System initialized successfully!');
+            console.log('✅ Enhanced Stretcher Manager initialized successfully!');
         });
-
-        // ===================================================================
-        // 🔧 Enhanced Utility Functions
-        // ===================================================================
-
-        function isWebSocketConnected() {
-            return window.Echo &&
-                window.Echo.connector &&
-                window.Echo.connector.pusher &&
-                window.Echo.connector.pusher.connection.state === 'connected';
-        }
-
-        // Global debug function
-        window.stretcherDebug = function() {
-            console.log('=== 🏥 Stretcher System Debug ===');
-            console.log('WebSocket Connected:', isWebSocketConnected());
-            console.log('Last Update:', document.getElementById('last-update')?.textContent);
-            console.log('Notification Sound Available:', !!document.getElementById('notification-sound'));
-            console.log('================================');
-        };
-
-        console.log('📱 Enhanced Stretcher Manager Real-time View loaded successfully!');
     </script>
 @endpush
 
 @push('styles')
     <style>
         /* ===================================================================
-           🎨 Real-time UI Styles
+           🎨 Enhanced Stretcher Manager Styles
            =================================================================== */
 
-        .stretcher-item {
-            transition: all 0.3s ease;
-            border-radius: 8px;
+        .stretcher-manager-container {
+            min-height: 100vh;
         }
 
-        .stretcher-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        /* Enhanced Notification Styles */
+        .enhanced-notification {
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
         }
 
-        .stretcher-item.updated {
-            border: 2px solid #28a745 !important;
-            background-color: rgba(40, 167, 69, 0.05) !important;
-            box-shadow: 0 0 15px rgba(40, 167, 69, 0.3) !important;
+        .notification-content {
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin: 0;
         }
 
-        .urgent-text {
-            color: #dc3545 !important;
+        .notification-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .notification-body {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .notification-timestamp {
+            margin-top: 0.25rem;
+        }
+
+        /* Enhanced User Section */
+        .user-section {
+            padding: 2rem 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .user-card-content {
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .user-avatar-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .user-avatar {
+            width: 70px;
+            height: 70px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .user-name {
+            font-size: 1.5rem;
             font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
         }
 
-        .urgent-text::after {
-            content: " 🚨";
-            font-size: 0.8em;
+        .user-badges {
+            display: flex;
+            gap: 0.75rem;
         }
 
-        .status-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
+        .badge-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .badge-admin {
+            background: var(--gradient-warning);
+            color: white;
+        }
+
+        .badge-online {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        /* Enhanced Statistics Section */
+        .statistics-section {
+            padding: 3rem 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .section-header {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--gradient-primary);
+        }
+
+        .stat-card.main-stat::before {
+            background: var(--gradient-primary);
+        }
+
+        .stat-card.success-stat::before {
+            background: var(--gradient-success);
+        }
+
+        .stat-card.info-stat::before {
+            background: var(--gradient-info);
+        }
+
+        .stat-card.warning-stat::before {
+            background: var(--gradient-warning);
+        }
+
+        .stat-card.secondary-stat::before {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.8;
+            color: var(--primary-color);
+        }
+
+        .success-stat .stat-icon {
+            color: var(--success-color);
+        }
+
+        .info-stat .stat-icon {
+            color: var(--info-color);
+        }
+
+        .warning-stat .stat-icon {
+            color: var(--warning-color);
+        }
+
+        .secondary-stat .stat-icon {
+            color: #6b7280;
+        }
+
+        .stat-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-time {
+            font-size: 0.9rem;
+            color: var(--text-muted);
             font-weight: 500;
         }
 
-        .stats-card {
-            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-            transition: transform 0.2s ease;
-            border-radius: 10px;
-        }
-
-        .stats-card:hover {
-            transform: scale(1.02);
-        }
-
-        .accept-btn:disabled {
-            cursor: not-allowed !important;
-        }
-
-        .stretcher-card {
-            font-size: 0.875rem;
-        }
-
-        .time-display,
-        .team-member {
-            font-size: 0.75rem;
-        }
-
-        /* Connection status */
-        #connection-status-container {
+        .stat-trend {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
         }
 
-        #connection-status {
-            animation: fadeIn 0.3s ease-in;
+        /* Enhanced Filter Section */
+        .filter-section {
+            padding: 2rem 0;
         }
 
-        /* Notification positioning */
-        #realtime-notification {
-            animation: slideInRight 0.3s ease-out;
+        .filter-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
+        .filter-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .filter-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .filter-body {
+            padding: 2rem;
+        }
+
+        .filter-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .filter-left {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .form-check-enhanced {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .form-check-enhanced .form-check-input {
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.375rem;
+        }
+
+        .form-check-enhanced .form-check-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .filter-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .filter-actions {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .btn-refresh {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .realtime-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-divider {
+            color: var(--text-muted);
+            margin: 0 0.25rem;
+        }
+
+        /* Enhanced Stretcher Requests Section */
+        .stretcher-requests-section {
+            padding: 2rem 0 4rem;
+        }
+
+        .stretcher-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .stretcher-card-wrapper {
+            position: relative;
+        }
+
+        /* Enhanced Stretcher Card Styles */
+        .stretcher-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: all var(--transition-normal);
+            overflow: hidden;
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stretcher-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-info);
+            z-index: 1;
+        }
+
+        .stretcher-card.priority-critical::before {
+            background: var(--gradient-danger);
+            height: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        .stretcher-card.priority-urgent::before {
+            background: var(--gradient-warning);
+            height: 5px;
+        }
+
+        .stretcher-card.priority-normal::before {
+            background: var(--gradient-info);
+        }
+
+        .stretcher-card.urgent-request {
+            border: 2px solid var(--danger-color);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2), var(--shadow-lg);
+        }
+
+        .stretcher-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Enhanced Card Header */
+        .stretcher-card-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-2xl);
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-waiting {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
+        .status-accepted {
+            background: var(--gradient-warning);
+            color: white;
+        }
+
+        .status-progress {
+            background: var(--gradient-info);
+            color: white;
+        }
+
+        .status-completed {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .status-cancelled {
+            background: var(--gradient-danger);
+            color: white;
+        }
+
+        .priority-indicator {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .priority-indicator.urgent {
+            background: var(--gradient-danger);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .request-id {
+            background: rgba(0,0,0,0.05);
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Enhanced Card Body */
+        .stretcher-card-body {
+            padding: 2rem;
+            flex: 1;
+        }
+
+        .patient-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .patient-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .patient-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .patient-hn {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-2xl);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .patient-info-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 0.75rem;
+            align-items: start;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: var(--radius-md);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .info-item.emergency {
+            background: #fef2f2;
+            border-left-color: var(--danger-color);
+        }
+
+        .info-item.priority-urgent {
+            background: #fefce8;
+            border-left-color: var(--warning-color);
+        }
+
+        .info-item.note {
+            background: #f0f9ff;
+            border-left-color: var(--info-color);
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .emergency .info-value,
+        .priority-urgent .info-value {
+            color: var(--danger-color);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Enhanced Card Footer */
+        .stretcher-card-footer {
+            background: #f8fafc;
+            border-top: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .time-info,
+        .team-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .time-info {
+            color: var(--text-secondary);
+        }
+
+        .team-info {
+            color: var(--info-color);
+        }
+
+        /* Enhanced Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--radius-md);
+            border: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-height: 48px;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-accept {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .btn-progress {
+            background: var(--gradient-info);
+            color: white;
+        }
+
+        .btn-complete {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .btn-disabled {
+            background: #6b7280;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        .btn-disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-content,
+        .btn-loading {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Enhanced Empty State */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--card-bg);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .empty-state-content {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .empty-state-icon {
+            font-size: 5rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        /* Enhanced Loading Section */
+        .loading-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-content {
+            text-align: center;
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .loading-spinner {
+            margin-bottom: 1.5rem;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Enhanced Responsive Design */
+        @media (max-width: 1200px) {
+            .stretcher-grid {
+                grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+                gap: 1.5rem;
             }
-
-            to {
-                opacity: 1;
-            }
         }
 
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* Loading spinner */
-        .spinner-border {
-            animation-duration: 0.75s;
-        }
-
-        /* Mobile responsive */
         @media (max-width: 768px) {
-            .stretcher-card {
-                font-size: 0.8rem;
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+
+            .stat-card {
+                padding: 1.5rem;
+            }
+
+            .stat-number {
+                font-size: 2.5rem;
+            }
+
+            .stretcher-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .filter-left {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .user-card-content {
+                flex-direction: column;
+                gap: 1.5rem;
+                text-align: center;
+            }
+
+            .info-item {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .footer-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stretcher-card-header,
+            .stretcher-card-body,
+            .stretcher-card-footer {
+                padding: 1rem;
+            }
+
+            .patient-name {
+                font-size: 1.1rem;
             }
 
             .status-badge {
-                font-size: 0.7rem;
+                font-size: 0.8rem;
+                padding: 0.375rem 0.75rem;
             }
 
-            #connection-status-container {
-                flex-direction: column;
-                gap: 0.25rem;
-            }
-
-            #realtime-notification {
-                position: relative !important;
-                top: auto !important;
-                right: auto !important;
-                margin: 1rem;
-                min-width: auto !important;
-            }
-        }
-
-        /* Print styles */
-        @media print {
-
-            .btn,
-            .card-footer,
-            #connection-status-container,
-            #realtime-notification {
-                display: none !important;
-            }
-
-            .stretcher-item {
-                break-inside: avoid;
-                margin-bottom: 1rem;
-                border: 1px solid #000 !important;
-            }
-
-            body {
-                background: white !important;
+            .btn-action {
+                padding: 0.75rem 1rem;
+                font-size: 0.875rem;
             }
         }
     </style>
