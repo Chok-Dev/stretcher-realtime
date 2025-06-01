@@ -1,5 +1,5 @@
 <?php
-// app/Events/StretcherUpdated.php
+// app/Events/NewStretcherRequest.php
 
 namespace App\Events;
 
@@ -9,21 +9,15 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class StretcherUpdated implements ShouldBroadcast
+class NewStretcherRequest implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $stretcherId;
-    public $action;
-    public $data;
-    public $userId;
+    public $request;
 
-    public function __construct($stretcherId, $action, $data = null, $userId = null)
+    public function __construct($request)
     {
-        $this->stretcherId = $stretcherId;
-        $this->action = $action;
-        $this->data = $data;
-        $this->userId = $userId;
+        $this->request = $request;
     }
 
     public function broadcastOn()
@@ -33,16 +27,13 @@ class StretcherUpdated implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'stretcher.updated';
+        return 'new.request';
     }
 
     public function broadcastWith()
     {
         return [
-            'stretcher_id' => $this->stretcherId,
-            'action' => $this->action,
-            'data' => $this->data,
-            'user_id' => $this->userId,
+            'request' => $this->request,
             'timestamp' => now()->toISOString()
         ];
     }

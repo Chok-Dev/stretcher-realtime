@@ -1,20 +1,41 @@
-<?php
 // app/Providers/EventServiceProvider.php
+<?php
 
 namespace App\Providers;
 
-use App\Models\StretcherRegister;
-use App\Observers\StretcherRegisterObserver;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Event;
 
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
-        // Events and listeners
+        Registered::class => [
+            SendEmailVerificationNotification::class,
+        ],
+        
+        // Stretcher Events
+        \App\Events\NewStretcherRequest::class => [
+            // Add listeners here if needed
+        ],
+        
+        \App\Events\StretcherUpdated::class => [
+            // Add listeners here if needed
+        ],
+        
+        \App\Events\StretcherStatusChanged::class => [
+            // Add listeners here if needed
+        ],
     ];
 
     public function boot(): void
     {
-        StretcherRegister::observe(StretcherRegisterObserver::class);
+        //
+    }
+
+    public function shouldDiscoverEvents(): bool
+    {
+        return false;
     }
 }
