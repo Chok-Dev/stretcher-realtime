@@ -62,7 +62,7 @@ class MobileEnhancementManager {
 
         // Document events
         document.addEventListener('DOMContentLoaded', this.onDOMReady.bind(this));
-        document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+      /*   document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this)); */
 
         // Prevent zoom on double tap
         this.preventDoubleTabZoom();
@@ -239,7 +239,7 @@ class MobileEnhancementManager {
         }
 
         // Handle long values
-      /*   if (value.textContent.length > 15) {
+       /*  if (value.textContent.length > 15) {
             value.title = value.textContent;
             value.textContent = value.textContent.substring(0, 15) + '...';
         } */
@@ -773,14 +773,14 @@ class MobileEnhancementManager {
     /**
      * Handle visibility change
      */
-    handleVisibilityChange() {
+    /* handleVisibilityChange() {
         if (document.visibilityState === 'visible' && this.isMobile) {
             // Refresh data when app becomes visible
             setTimeout(() => {
                 this.handleMobileRefresh();
             }, 1000);
         }
-    }
+    } */
 }
 
 // Global functions for mobile

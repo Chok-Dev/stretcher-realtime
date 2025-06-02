@@ -56,7 +56,7 @@ class EnhancedStretcherManager {
         // DOM Content Loaded Events
         document.addEventListener('DOMContentLoaded', () => {
             this.initializeUI();
-            this.setupCustomEvents();
+          /*   this.setupCustomEvents(); */
         });
 
         // Window Events
@@ -247,7 +247,7 @@ class EnhancedStretcherManager {
             2: 'รับงานแล้ว',
             3: 'กำลังดำเนินการ',
             4: 'สำเร็จ',
-            5: 'ยกเลิก'
+            5: 'อื่นๆ'
         };
         
         // Highlight with appropriate color
@@ -570,7 +570,7 @@ class EnhancedStretcherManager {
     /**
      * Enhanced data refresh with smart scheduling
      */
-    scheduleDataRefresh(delay = 1000, callback = null) {
+    /* scheduleDataRefresh(delay = 1000, callback = null) {
         // Clear any existing refresh timeout
         if (this.refreshTimeout) {
             clearTimeout(this.refreshTimeout);
@@ -581,7 +581,7 @@ class EnhancedStretcherManager {
             if (callback) callback();
         }, delay);
     }
-
+ */
     /**
      * Enhanced Livewire component refresh
      */

@@ -6,7 +6,7 @@ use App\Models\StretcherRegister;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
-use App\Observers\StretcherRegisterObserver;
+use App\Observers\StretcherRequestObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-          Paginator::useBootstrapFive();
+        Paginator::useBootstrapFive();
+        StretcherRegister::observe(StretcherRequestObserver::class);
     }
 }

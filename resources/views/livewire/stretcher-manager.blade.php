@@ -163,7 +163,7 @@
     </section>
 
     <!-- Enhanced Filter Section -->
-    <section class="filter-section animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+  {{--   <section class="filter-section animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
         <div class="container">
             <div class="filter-card">
                 <div class="filter-header">
@@ -218,7 +218,7 @@
             </div>
         </div>
     </section>
-
+ --}}
     <!-- Enhanced Stretcher Requests Grid -->
     <section class="stretcher-requests-section">
         <div class="container">
@@ -251,7 +251,7 @@
                                             2 => ['class' => 'accepted', 'icon' => 'hand-paper', 'text' => 'รับงานแล้ว'],
                                             3 => ['class' => 'progress', 'icon' => 'running', 'text' => 'กำลังดำเนินการ'],
                                             4 => ['class' => 'completed', 'icon' => 'check-circle', 'text' => 'สำเร็จ'],
-                                            5 => ['class' => 'cancelled', 'icon' => 'times-circle', 'text' => 'ยกเลิก'],
+                                            5 => ['class' => 'cancelled', 'icon' => 'times-circle', 'text' => 'อื่นๆ'],
                                         ];
                                         $status = $statusConfig[$request['stretcher_work_status_id']] ?? $statusConfig[1];
                                     @endphp
@@ -291,7 +291,7 @@
                                             <span class="info-label">
                                                 <i class="fas fa-bed"></i>ประเภทเปล
                                             </span>
-                                            <span class="info-value">{{ $request['stretcher_type_name'] }}</span>
+                                            <span class="info-value text-end">{{ $request['stretcher_type_name'] }}</span>
                                         </div>
 
                                         @if (!empty($request['stretcher_o2tube_type_name']))
@@ -299,7 +299,7 @@
                                                 <span class="info-label">
                                                     <i class="fas fa-lungs"></i>ออกซิเจน
                                                 </span>
-                                                <span class="info-value">{{ $request['stretcher_o2tube_type_name'] }}</span>
+                                                <span class="info-value text-end">{{ $request['stretcher_o2tube_type_name'] }}</span>
                                             </div>
                                         @endif
 
@@ -308,7 +308,7 @@
                                                 <span class="info-label">
                                                     <i class="fas fa-exclamation-triangle"></i>ฉุกเฉิน
                                                 </span>
-                                                <span class="info-value">{{ $request['stretcher_emergency_name'] }}</span>
+                                                <span class="info-value text-end">{{ $request['stretcher_emergency_name'] }}</span>
                                             </div>
                                         @endif
 
@@ -316,7 +316,7 @@
                                             <span class="info-label">
                                                 <i class="fas fa-tachometer-alt"></i>ความเร่งด่วน
                                             </span>
-                                            <span class="info-value">
+                                            <span class="info-value text-end">
                                                 {{ $request['stretcher_priority_name'] }}
                                                 @if (in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']))
                                                     <i class="fas fa-fire ms-1"></i>
@@ -328,21 +328,21 @@
                                             <span class="info-label">
                                                 <i class="fas fa-user-md"></i>ผู้ขอเปล
                                             </span>
-                                            <span class="info-value">{{ $request['dname'] }}</span>
+                                            <span class="info-value text-end">{{ $request['dname'] }}</span>
                                         </div>
 
                                         <div class="info-item">
                                             <span class="info-label">
                                                 <i class="fas fa-map-marker-alt"></i>จากแผนก
                                             </span>
-                                            <span class="info-value">{{ $request['department'] }}</span>
+                                            <span class="info-value text-end">{{ $request['department'] }}</span>
                                         </div>
 
                                         <div class="info-item">
                                             <span class="info-label">
                                                 <i class="fas fa-arrow-right"></i>ไปแผนก
                                             </span>
-                                            <span class="info-value">{{ $request['department2'] }}</span>
+                                            <span class="info-value text-end">{{ $request['department2'] }}</span>
                                         </div>
 
                                         @if (!empty($request['from_note']))
@@ -350,7 +350,7 @@
                                                 <span class="info-label">
                                                     <i class="fas fa-sticky-note"></i>หมายเหตุ (1)
                                                 </span>
-                                                <span class="info-value">{{ $request['from_note'] }}</span>
+                                                <span class="info-value text-end">{{ $request['from_note'] }}</span>
                                             </div>
                                         @endif
 
@@ -359,7 +359,7 @@
                                                 <span class="info-label">
                                                     <i class="fas fa-comment"></i>หมายเหตุ (2)
                                                 </span>
-                                                <span class="info-value">{{ $request['send_note'] }}</span>
+                                                <span class="info-value text-end">{{ $request['send_note'] }}</span>
                                             </div>
                                         @endif
                                     </div>
@@ -1048,6 +1048,7 @@
         .patient-info-grid {
             display: grid;
             gap: 1rem;
+            
         }
 
         .info-item {
@@ -1096,6 +1097,7 @@
             color: var(--danger-color);
             font-weight: 700;
             display: flex;
+            justify-content: end;
             align-items: center;
             gap: 0.25rem;
         }

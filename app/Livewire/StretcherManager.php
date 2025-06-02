@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire;
 
 use Carbon\Carbon;
@@ -26,12 +27,12 @@ class StretcherManager extends Component
     public $notificationMessage = '';
     public $notificationType = 'info';
     public $lastUpdate; // เพิ่ม property สำหรับ track การ update
-    
+
     protected $listeners = [
 
         'refreshData' => 'loadData', // เพิ่ม listener สำหรับ refresh
     ];
-    
+
     public function mount()
     {
         try {
@@ -80,11 +81,11 @@ class StretcherManager extends Component
     {
         $isEmergency = !empty($request['stretcher_emergency_name']);
         $isUrgent = in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']);
-        
+
         if ($isEmergency || $isUrgent) {
             return 'urgent-request';
         }
-        
+
         return '';
     }
 
@@ -121,7 +122,7 @@ class StretcherManager extends Component
             5 => [
                 'class' => 'status-cancelled',
                 'icon' => 'fas fa-times-circle',
-                'text' => 'ยกเลิก',
+                'text' => 'อื่นๆ',
                 'color' => '#ef4444'
             ]
         ];
@@ -136,11 +137,11 @@ class StretcherManager extends Component
     {
         $carbon = Carbon::parse($dateTime);
         $now = Carbon::now();
-        
+
         $diffInMinutes = $carbon->diffInMinutes($now);
         $diffInHours = $carbon->diffInHours($now);
         $diffInDays = $carbon->diffInDays($now);
-        
+
         if ($diffInMinutes < 1) {
             return 'เมื่อสักครู่';
         } elseif ($diffInMinutes < 60) {
@@ -158,7 +159,7 @@ class StretcherManager extends Component
     public function getUrgencyLevel($request)
     {
         $urgencyLevel = 1;
-        
+
         // Base urgency on priority
         switch ($request['stretcher_priority_name']) {
             case 'ด่วนที่สุด':
@@ -174,20 +175,20 @@ class StretcherManager extends Component
                 $urgencyLevel = 1;
                 break;
         }
-        
+
         // Increase urgency if emergency
         if (!empty($request['stretcher_emergency_name'])) {
             $urgencyLevel = 5;
         }
-        
+
         // Increase urgency based on waiting time
         $waitingMinutes = Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])
             ->diffInMinutes(Carbon::now());
-        
+
         if ($waitingMinutes > 60) {
             $urgencyLevel = min(5, $urgencyLevel + 1);
         }
-        
+
         return $urgencyLevel;
     }
 
@@ -196,10 +197,10 @@ class StretcherManager extends Component
      */
     public function sortRequestsByUrgency($data)
     {
-        return collect($data)->sortBy(function($request) {
+        return collect($data)->sortBy(function ($request) {
             $urgencyLevel = $this->getUrgencyLevel($request);
             $timeStamp = Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])->timestamp;
-            
+
             // Higher urgency first, then older requests first
             return [$urgencyLevel * -1, $timeStamp];
         })->values()->toArray();
@@ -259,7 +260,7 @@ class StretcherManager extends Component
         $urgencyLevel = $this->getUrgencyLevel($request);
         $waitingMinutes = Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])
             ->diffInMinutes(Carbon::now());
-        
+
         return $urgencyLevel >= 4 || $waitingMinutes > 30;
     }
 
@@ -269,7 +270,7 @@ class StretcherManager extends Component
     public function getEstimatedCompletionTime($request)
     {
         $baseTime = 15; // Base time in minutes
-        
+
         // Adjust based on priority
         switch ($request['stretcher_priority_name']) {
             case 'ด่วนที่สุด':
@@ -285,16 +286,16 @@ class StretcherManager extends Component
                 $baseTime = 20;
                 break;
         }
-        
+
         // Adjust based on equipment type
         if (strpos($request['stretcher_type_name'], 'ICU') !== false) {
             $baseTime += 10;
         }
-        
+
         if (!empty($request['stretcher_o2tube_type_name'])) {
             $baseTime += 5;
         }
-        
+
         return $baseTime;
     }
 
@@ -306,7 +307,7 @@ class StretcherManager extends Component
         $this->showNotification = true;
         $this->notificationMessage = $message;
         $this->notificationType = $type;
-        
+
         // Auto-hide after delay
         if ($autoHide) {
             $this->dispatch('auto-hide-notification', ['delay' => 5000]);
@@ -323,7 +324,7 @@ class StretcherManager extends Component
             'user_id' => $this->currentUserId,
             'timestamp' => now()
         ]);
-        
+
         $message = $userMessage ?: 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง';
         $this->showEnhancedNotification($message, 'error');
     }
@@ -336,29 +337,29 @@ class StretcherManager extends Component
     public function handleStretcherUpdated($event)
     {
         Log::info('🔄 Received StretcherUpdated event', $event);
-        
+
         // แสดงการแจ้งเตือน
         $teamMember = $event['data']['team_member'] ?? 'ระบบ';
         $action = $event['action'] ?? 'อัปเดต';
-        
+
         $actionText = [
             'accepted' => 'รับงาน',
             'sent' => 'ไปรับผู้ป่วย',
             'completed' => 'งานสำเร็จ'
         ];
-        
+
         $this->showEnhancedNotification(
-            "{$teamMember} {$actionText[$action]} รายการ ID: {$event['stretcher_id']}", 
+            "{$teamMember} {$actionText[$action]} รายการ ID: {$event['stretcher_id']}",
             'success'
         );
-        
+
         // ส่ง event ไปยัง JavaScript
         $this->dispatch('stretcher-item-updated', [
             'stretcherId' => $event['stretcher_id'],
             'action' => $action,
             'teamMember' => $teamMember
         ]);
-        
+
         // รีเฟรชข้อมูล - ใช้หลายวิธี
         $this->forceRefresh();
     }
@@ -367,61 +368,113 @@ class StretcherManager extends Component
     public function handleNewRequest($event)
     {
         Log::info('🔔 Received NewStretcherRequest event', $event);
-        
+
         $request = $event['request'];
+
+         $this->sendNewRequestNotification($request);
+
         $this->showEnhancedNotification(
-            "มีรายการขอเปลใหม่: HN {$request['hn']} - {$request['pname']}{$request['fname']} {$request['lname']}", 
+            "มีรายการขอเปลใหม่: HN {$request['hn']} - {$request['pname']}{$request['fname']} {$request['lname']}",
             'info'
         );
-        
+
         $this->dispatch('new-request-arrived', [
             'request' => $request
         ]);
-        
+
         $this->forceRefresh();
+    }
+
+    private function sendNewRequestNotification($request)
+    {
+        try {
+            // สร้างข้อความแจ้งเตือน
+            $message = "🚨 มีการขอเปลใหม่!\n";
+            $message .= "=================================\n";
+            $message .= "🏥 HN: {$request['hn']}\n";
+            $message .= "👤 ชื่อ-นามสกุล: {$request['pname']}{$request['fname']} {$request['lname']}\n";
+            $message .= "⚡ ความเร่งด่วน: {$request['stretcher_priority_name']}\n";
+            $message .= "🛏️ ประเภทเปล: {$request['stretcher_type_name']}\n";
+
+            if (!empty($request['stretcher_o2tube_type_name'])) {
+                $message .= "🫁 ออกซิเจน: {$request['stretcher_o2tube_type_name']}\n";
+            }
+
+            if (!empty($request['stretcher_emergency_name'])) {
+                $message .= "🚨 ฉุกเฉิน: {$request['stretcher_emergency_name']}\n";
+            }
+
+            $message .= "🏠 จากแผนก: {$request['department']}\n";
+            $message .= "🎯 ไปแผนก: {$request['department2']}\n";
+            $message .= "👨‍⚕️ ผู้ขอเปล: {$request['dname']}\n";
+
+            if (!empty($request['from_note'])) {
+                $message .= "📝 หมายเหตุ: {$request['from_note']}\n";
+            }
+
+            $message .= "🕐 เวลา: " . Carbon::parse($request['stretcher_register_date'] . ' ' . $request['stretcher_register_time'])->format('d/m/Y H:i:s') . "\n";
+            $message .= "=================================\n";
+            $message .= "กรุณารับงานด่วน!";
+
+            // ส่งไป Telegram
+            $this->sendTelegramNotification($message);
+
+            // ส่งไป MoPH Notify
+            $this->sendMorphromNotification($message);
+
+            Log::info('✅ New request notification sent successfully', [
+                'request_id' => $request['stretcher_register_id'],
+                'hn' => $request['hn']
+            ]);
+        } catch (Exception $e) {
+            Log::error('❌ Send new request notification error: ' . $e->getMessage(), [
+                'request' => $request,
+                'error' => $e->getTraceAsString()
+            ]);
+        }
     }
 
     #[On('echo:stretcher-updates,StretcherStatusChanged')]
     public function handleStatusChanged($event)
     {
         Log::info('📊 Received StretcherStatusChanged event', $event);
-        
+
         $statusNames = [
             1 => 'รอรับงาน',
-            2 => 'รับงานแล้ว', 
+            2 => 'รับงานแล้ว',
             3 => 'กำลังดำเนินการ',
             4 => 'สำเร็จ',
-            5 => 'ยกเลิก'
+            5 => 'อื่นๆ'
         ];
-        
+
         $newStatusName = $statusNames[$event['new_status']] ?? 'ไม่ทราบ';
         $teamMember = $event['team_member'] ?? 'ระบบ';
-        
+
         $this->showEnhancedNotification(
-            "{$teamMember} เปลี่ยนสถานะเป็น '{$newStatusName}'", 
+            "{$teamMember} เปลี่ยนสถานะเป็น '{$newStatusName}'",
             'warning'
         );
-        
+
         $this->dispatch('status-change-detected', [
             'stretcherId' => $event['stretcher_id'],
             'oldStatus' => $event['old_status'],
             'newStatus' => $event['new_status'],
             'teamMember' => $teamMember
         ]);
-        
+
         $this->forceRefresh();
     }
 
     // ===================================================================
     // 🔧 Core Functions
     // ===================================================================
-    
+
     #[On('loadData')]
     public function loadData()
     {
         try {
             Log::info('🔄 Loading data...');
-            
+
             // ใช้ Raw Query เพื่อ debug และเสถียรภาพ
             $this->data = DB::connection('pgsql')
                 ->select("
@@ -431,19 +484,18 @@ class StretcherManager extends Component
                 ", [Carbon::now()->format('Y-m-d')]);
 
             // Convert to array
-            $this->data = collect($this->data)->map(function($item) {
+            $this->data = collect($this->data)->map(function ($item) {
                 return (array) $item;
             })->toArray();
 
             // Sort by urgency and time
-            $this->data = $this->sortRequestsByUrgency($this->data);
+           /*  $this->data = $this->sortRequestsByUrgency($this->data); */
 
             $this->lastUpdate = now()->format('H:i:s');
             Log::info('✅ Data loaded successfully', [
                 'count' => count($this->data),
                 'time' => $this->lastUpdate
             ]);
-
         } catch (Exception $e) {
             Log::error('❌ Load Data Error: ' . $e->getMessage());
             $this->data = [];
@@ -456,7 +508,7 @@ class StretcherManager extends Component
     {
         Log::info('🔄 Force refresh triggered');
         $this->loadData();
-        
+
         // ส่งสัญญาณไปยัง frontend ให้ refresh
         $this->dispatch('data-refreshed', [
             'timestamp' => now()->toISOString(),
@@ -532,7 +584,7 @@ class StretcherManager extends Component
 
             // ส่งการแจ้งเตือน
             $this->sendAcceptedNotification($requestId);
-            
+
             // Broadcast events ให้ผู้ใช้คนอื่น
             try {
                 broadcast(new StretcherUpdated($requestId, 'accepted', [
@@ -543,15 +595,14 @@ class StretcherManager extends Component
                 ], $this->currentUserId));
 
                 broadcast(new StretcherStatusChanged($requestId, 1, 2, $this->currentUserName));
-                
+
                 Log::info('✅ Broadcasting events sent successfully', ['request_id' => $requestId]);
-                
             } catch (Exception $e) {
                 Log::warning('⚠️ Broadcasting failed: ' . $e->getMessage());
             }
 
             $this->showEnhancedNotification('รับงานสำเร็จ! ID: ' . $requestId, 'success');
-            
+
             // Force refresh แทนการใช้ loadData() ธรรมดา
             $this->forceRefresh();
 
@@ -564,7 +615,6 @@ class StretcherManager extends Component
 
             // เพิ่ม delay แล้ว refresh อีกครั้ง เพื่อให้แน่ใจ
             $this->dispatch('delayed-refresh', ['delay' => 1000]);
-
         } catch (Exception $e) {
             Log::error('❌ Accept Request Error', [
                 'request_id' => $requestId,
@@ -572,7 +622,7 @@ class StretcherManager extends Component
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             $this->handleError($e, 'เกิดข้อผิดพลาด: ' . $e->getMessage());
             $this->forceRefresh(); // Refresh หลังจาก error
         }
@@ -586,7 +636,7 @@ class StretcherManager extends Component
                 ->table('my_stretcher')
                 ->where('stretcher_register_id', $requestId)
                 ->first();
-            
+
             if ($data) {
                 $message = "✅ รับแล้ว {$this->currentUserName}\n";
                 $message .= "-----------------------------------------\n";
@@ -597,7 +647,7 @@ class StretcherManager extends Component
 
                 $this->sendTelegramNotification($message);
                 $this->sendMorphromNotification($message);
-                
+
                 Log::info('✅ Notification sent successfully', ['request_id' => $requestId]);
             }
         } catch (Exception $e) {
@@ -609,26 +659,45 @@ class StretcherManager extends Component
     {
         try {
             $token = env('TELEGRAM_TOKEN');
-            if (!$token) return;
+            $chatId = env('TELEGRAM_CHATID');
+
+            if (!$token || !$chatId) {
+                Log::warning('⚠️ Telegram credentials not configured');
+                return;
+            }
 
             $url = "https://api.telegram.org/bot{$token}/sendMessage";
-            Http::post($url, [
-                'chat_id' => env('TELEGRAM_CHATID'),
+
+            $response = Http::timeout(10)->post($url, [
+                'chat_id' => $chatId,
                 'text' => $message,
-                'parse_mode' => 'Markdown',
+                'parse_mode' => 'HTML',
+                'disable_web_page_preview' => true
             ]);
+
+            if ($response->successful()) {
+                Log::info('✅ Telegram notification sent successfully');
+            } else {
+                Log::error('❌ Telegram API error: ' . $response->body());
+            }
         } catch (Exception $e) {
-            Log::error('Telegram notification failed: ' . $e->getMessage());
+            Log::error('❌ Telegram notification failed: ' . $e->getMessage());
         }
     }
 
+    /**
+     * ส่งแจ้งเตือน MoPH Notify (ปรับปรุง)
+     */
     private function sendMorphromNotification($message)
     {
         try {
             $client_id = env('MOPH_CLIENT');
             $secret_key = env('MOPH_SECRET');
-            
-            if (!$client_id || !$secret_key) return;
+
+            if (!$client_id || !$secret_key) {
+                Log::warning('⚠️ MoPH credentials not configured');
+                return;
+            }
 
             $url = 'https://morpromt2f.moph.go.th/api/notify/send';
             $data = [
@@ -640,15 +709,22 @@ class StretcherManager extends Component
                 ]
             ];
 
-            Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'client-key' => $client_id,
-                'secret-key' => $secret_key,
-            ])
-            ->withOptions(['verify' => false])
-            ->post($url, $data);
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'client-key' => $client_id,
+                    'secret-key' => $secret_key,
+                ])
+                ->withOptions(['verify' => false])
+                ->post($url, $data);
+
+            if ($response->successful()) {
+                Log::info('✅ MoPH notification sent successfully');
+            } else {
+                Log::error('❌ MoPH API error: ' . $response->body());
+            }
         } catch (Exception $e) {
-            Log::error('MorProm notification failed: ' . $e->getMessage());
+            Log::error('❌ MorProm notification failed: ' . $e->getMessage());
         }
     }
 
@@ -671,7 +747,7 @@ class StretcherManager extends Component
                         'team_member' => $this->currentUserName,
                         'status' => 'กำลังดำเนินการ'
                     ], $this->currentUserId));
-                    
+
                     broadcast(new StretcherStatusChanged($requestId, 2, 3, $this->currentUserName));
                 } catch (Exception $e) {
                     Log::warning('Broadcasting failed: ' . $e->getMessage());
@@ -708,7 +784,7 @@ class StretcherManager extends Component
                         'team_member' => $this->currentUserName,
                         'status' => 'สำเร็จ'
                     ], $this->currentUserId));
-                    
+
                     broadcast(new StretcherStatusChanged($requestId, 3, 4, $this->currentUserName));
                 } catch (Exception $e) {
                     Log::warning('Broadcasting failed: ' . $e->getMessage());
@@ -744,7 +820,7 @@ class StretcherManager extends Component
         $this->showNotification = true;
         $this->notificationMessage = $title . ': ' . $message;
         $this->notificationType = $type;
-        
+
         $this->dispatch('auto-hide-notification', ['delay' => 5000]);
     }
 
@@ -779,23 +855,23 @@ class StretcherManager extends Component
     public function render()
     {
         // เรียก loadData() ก่อน render เพื่อให้แน่ใจว่าข้อมูลล่าสุด
-        $this->loadData();
-        
+     /*    $this->loadData(); */
+
         // คำนวณสถิติ
         $stats = [
             'total_today' => count($this->data),
-            'my_accepted' => $this->currentUserId ? count(array_filter($this->data, function($item) {
+            'my_accepted' => $this->currentUserId ? count(array_filter($this->data, function ($item) {
                 return $item['stretcher_team_list_id'] == $this->currentUserId;
             })) : 0,
-            'night_shift' => count(array_filter($this->data, function($item) {
+            'night_shift' => count(array_filter($this->data, function ($item) {
                 $time = $item['stretcher_register_time'];
                 return $time >= '00:00:00' && $time <= '07:59:59';
             })),
-            'morning_shift' => count(array_filter($this->data, function($item) {
+            'morning_shift' => count(array_filter($this->data, function ($item) {
                 $time = $item['stretcher_register_time'];
                 return $time >= '08:00:00' && $time <= '16:00:00';
             })),
-            'afternoon_shift' => count(array_filter($this->data, function($item) {
+            'afternoon_shift' => count(array_filter($this->data, function ($item) {
                 $time = $item['stretcher_register_time'];
                 return $time >= '16:00:00' && $time <= '23:59:59';
             }))
@@ -803,9 +879,9 @@ class StretcherManager extends Component
 
         $pendingWorkCount = 0;
         if ($this->currentUserId) {
-            $pendingWorkCount = count(array_filter($this->data, function($item) {
-                return $item['stretcher_team_list_id'] == $this->currentUserId && 
-                       !in_array($item['stretcher_work_status_id'], [4, 5]);
+            $pendingWorkCount = count(array_filter($this->data, function ($item) {
+                return $item['stretcher_team_list_id'] == $this->currentUserId &&
+                    !in_array($item['stretcher_work_status_id'], [4, 5]);
             }));
         }
 
@@ -813,13 +889,13 @@ class StretcherManager extends Component
         $filteredData = $this->data;
 
         if ($this->showMyOnly && $this->currentUserId) {
-            $filteredData = array_filter($filteredData, function($item) {
+            $filteredData = array_filter($filteredData, function ($item) {
                 return $item['stretcher_team_list_id'] == $this->currentUserId;
             });
         }
 
         if ($this->hideCompleted) {
-            $filteredData = array_filter($filteredData, function($item) {
+            $filteredData = array_filter($filteredData, function ($item) {
                 return !in_array($item['stretcher_work_status_id'], [4, 5]);
             });
         }
