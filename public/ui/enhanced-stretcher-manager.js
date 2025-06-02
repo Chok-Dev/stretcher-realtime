@@ -193,7 +193,7 @@ class EnhancedStretcherManager {
         );
         
         // Refresh data
-        this.scheduleDataRefresh(1000);
+     /*    this.scheduleDataRefresh(1000); */
         
         // Update statistics
         this.updateStatistics();
@@ -218,9 +218,9 @@ class EnhancedStretcherManager {
         }
         
         // Add pulsing effect to new items
-        this.scheduleDataRefresh(500, () => {
+      /*   this.scheduleDataRefresh(500, () => {
             this.addPulseEffectToNewItems();
-        });
+        }); */
         
         // Vibrate device if supported
         this.vibrateDevice([200, 100, 200]);
@@ -270,7 +270,7 @@ class EnhancedStretcherManager {
             this.playNotificationSound('status-change');
         }
         
-        this.scheduleDataRefresh(1500);
+      /*   this.scheduleDataRefresh(1500); */
     }
 
     /**
@@ -898,7 +898,7 @@ class EnhancedStretcherManager {
     handleVisibilityChange() {
         if (document.visibilityState === 'visible') {
             // Page became visible, refresh data
-            this.scheduleDataRefresh(1000);
+           /*  this.scheduleDataRefresh(1000); */
         }
     }
 

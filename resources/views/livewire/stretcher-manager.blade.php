@@ -7,10 +7,10 @@
 
     <!-- Enhanced Real-time Notification -->
     @if ($showNotification)
-        <div class="enhanced-notification animate__animated animate__slideInRight" 
-             id="realtime-notification"
-             style="position: fixed; top: 20px; right: 20px; z-index: 1060; min-width: 350px;">
-            <div class="notification-content alert alert-{{ $notificationType === 'error' ? 'danger' : ($notificationType === 'success' ? 'success' : ($notificationType === 'warning' ? 'warning' : 'info')) }} alert-dismissible fade show">
+        <div class="enhanced-notification animate__animated animate__slideInRight" id="realtime-notification"
+            style="position: fixed; top: 20px; right: 20px; z-index: 1060; min-width: 350px;">
+            <div
+                class="notification-content alert alert-{{ $notificationType === 'error' ? 'danger' : ($notificationType === 'success' ? 'success' : ($notificationType === 'warning' ? 'warning' : 'info')) }} alert-dismissible fade show">
                 <div class="d-flex align-items-center">
                     <div class="notification-icon me-3">
                         @if ($notificationType === 'success')
@@ -92,7 +92,7 @@
 
             <div class="stats-grid">
                 <!-- Total Requests Today -->
-             {{--    <div class="stat-card main-stat animate__animated animate__zoomIn">
+                {{--    <div class="stat-card main-stat animate__animated animate__zoomIn">
                     <div class="stat-icon">
                         <i class="fas fa-list"></i>
                     </div>
@@ -163,7 +163,7 @@
     </section>
 
     <!-- Enhanced Filter Section -->
-  {{--   <section class="filter-section animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+    {{--   <section class="filter-section animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
         <div class="container">
             <div class="filter-card">
                 <div class="filter-header">
@@ -227,20 +227,20 @@
                     <i class="fas fa-bed me-2"></i>รายการขอเปล
                 </h2>
                 <p class="section-subtitle">
-                    รายการทั้งหมด {{ count($data) }} รายการ | 
+                    รายการทั้งหมด {{ count($data) }} รายการ |
                     อัปเดตแบบเรียลไทม์
                 </p>
             </div>
 
             <div class="stretcher-grid" id="stretcher-requests-grid">
                 @forelse($data as $index => $request)
-                    <div class="stretcher-card-wrapper animate__animated animate__fadeInUp" 
-                         style="animation-delay: {{ $index * 0.1 }}s">
-                        <div class="stretcher-card {{ $this->getPriorityClass($request['stretcher_priority_name']) }} {{ $this->getUrgencyClass($request) }}" 
-                             id="stretcher-item-{{ $request['stretcher_register_id'] }}"
-                             data-request-id="{{ $request['stretcher_register_id'] }}"
-                             data-status="{{ $request['stretcher_work_status_id'] }}"
-                             data-team="{{ $request['stretcher_team_list_id'] ?? '' }}">
+                    <div class="stretcher-card-wrapper animate__animated animate__fadeInUp"
+                        style="animation-delay: {{ $index * 0.1 }}s">
+                        <div class="stretcher-card {{ $this->getPriorityClass($request['stretcher_priority_name']) }} {{ $this->getUrgencyClass($request) }}"
+                            id="stretcher-item-{{ $request['stretcher_register_id'] }}"
+                            data-request-id="{{ $request['stretcher_register_id'] }}"
+                            data-status="{{ $request['stretcher_work_status_id'] }}"
+                            data-team="{{ $request['stretcher_team_list_id'] ?? '' }}">
 
                             <!-- Enhanced Card Header -->
                             <div class="stretcher-card-header">
@@ -248,12 +248,21 @@
                                     @php
                                         $statusConfig = [
                                             1 => ['class' => 'waiting', 'icon' => 'clock', 'text' => 'รอรับงาน'],
-                                            2 => ['class' => 'accepted', 'icon' => 'hand-paper', 'text' => 'รับงานแล้ว'],
-                                            3 => ['class' => 'progress', 'icon' => 'running', 'text' => 'กำลังดำเนินการ'],
+                                            2 => [
+                                                'class' => 'accepted',
+                                                'icon' => 'hand-paper',
+                                                'text' => 'รับงานแล้ว',
+                                            ],
+                                            3 => [
+                                                'class' => 'progress',
+                                                'icon' => 'running',
+                                                'text' => 'กำลังดำเนินการ',
+                                            ],
                                             4 => ['class' => 'completed', 'icon' => 'check-circle', 'text' => 'สำเร็จ'],
                                             5 => ['class' => 'cancelled', 'icon' => 'times-circle', 'text' => 'อื่นๆ'],
                                         ];
-                                        $status = $statusConfig[$request['stretcher_work_status_id']] ?? $statusConfig[1];
+                                        $status =
+                                            $statusConfig[$request['stretcher_work_status_id']] ?? $statusConfig[1];
                                     @endphp
 
                                     <span class="status-badge status-{{ $status['class'] }}">
@@ -291,7 +300,8 @@
                                             <span class="info-label">
                                                 <i class="fas fa-bed"></i>ประเภทเปล
                                             </span>
-                                            <span class="info-value text-end">{{ $request['stretcher_type_name'] }}</span>
+                                            <span
+                                                class="info-value text-end">{{ $request['stretcher_type_name'] }}</span>
                                         </div>
 
                                         @if (!empty($request['stretcher_o2tube_type_name']))
@@ -299,7 +309,8 @@
                                                 <span class="info-label">
                                                     <i class="fas fa-lungs"></i>ออกซิเจน
                                                 </span>
-                                                <span class="info-value text-end">{{ $request['stretcher_o2tube_type_name'] }}</span>
+                                                <span
+                                                    class="info-value text-end">{{ $request['stretcher_o2tube_type_name'] }}</span>
                                             </div>
                                         @endif
 
@@ -308,11 +319,13 @@
                                                 <span class="info-label">
                                                     <i class="fas fa-exclamation-triangle"></i>ฉุกเฉิน
                                                 </span>
-                                                <span class="info-value text-end">{{ $request['stretcher_emergency_name'] }}</span>
+                                                <span
+                                                    class="info-value text-end">{{ $request['stretcher_emergency_name'] }}</span>
                                             </div>
                                         @endif
 
-                                        <div class="info-item {{ in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']) ? 'priority-urgent' : '' }}">
+                                        <div
+                                            class="info-item {{ in_array($request['stretcher_priority_name'], ['ด่วนที่สุด', 'ด่วน']) ? 'priority-urgent' : '' }}">
                                             <span class="info-label">
                                                 <i class="fas fa-tachometer-alt"></i>ความเร่งด่วน
                                             </span>
@@ -368,7 +381,8 @@
 
                             <!-- Enhanced Card Footer -->
                             <div class="stretcher-card-footer">
-                                <div class="footer-info">
+                                <div class="footer-info"
+                                    style="display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important;">
                                     <div class="time-info">
                                         <i class="fas fa-clock"></i>
                                         <span class="time-text">
@@ -381,24 +395,28 @@
                                             <i class="fas fa-user-check"></i>
                                             <span class="team-name">{{ $request['name'] }}</span>
                                         </div>
+                                    @else
+                                        <div></div> {{-- placeholder เพื่อให้ space-between ทำงาน --}}
                                     @endif
                                 </div>
 
-                                <!-- Enhanced Action Buttons -->
+                                <!-- Enhanced Action Buttons - บรรทัดใหม่ -->
                                 @if ($currentUserId && $userType === 'team_member')
                                     <div class="action-buttons">
                                         @if (empty($request['stretcher_team_list_id']) && $request['stretcher_work_status_id'] == 1)
                                             @if ($pendingWorkCount <= 0)
                                                 <button type="button" class="btn btn-action btn-accept"
-                                                        wire:click="acceptRequest({{ $request['stretcher_register_id'] }})"
-                                                        wire:loading.attr="disabled"
-                                                        wire:target="acceptRequest({{ $request['stretcher_register_id'] }})"
-                                                        data-request-id="{{ $request['stretcher_register_id'] }}">
-                                                    <span class="btn-content" wire:loading.remove wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
+                                                    wire:click="acceptRequest({{ $request['stretcher_register_id'] }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="acceptRequest({{ $request['stretcher_register_id'] }})"
+                                                    data-request-id="{{ $request['stretcher_register_id'] }}">
+                                                    <span class="btn-content" wire:loading.remove
+                                                        wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
                                                         <i class="fas fa-hand-paper"></i>
                                                         <span>รับงาน</span>
                                                     </span>
-                                                    <span class="btn-loading" wire:loading wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
+                                                    <span class="btn-loading" wire:loading
+                                                        wire:target="acceptRequest({{ $request['stretcher_register_id'] }})">
                                                         <i class="fas fa-spinner fa-spin"></i>
                                                         <span>กำลังรับงาน...</span>
                                                     </span>
@@ -411,28 +429,32 @@
                                             @endif
                                         @elseif($request['stretcher_team_list_id'] == $currentUserId && $request['stretcher_work_status_id'] == 2)
                                             <button type="button" class="btn btn-action btn-progress"
-                                                    wire:click="sendToPatient({{ $request['stretcher_register_id'] }})"
-                                                    wire:loading.attr="disabled"
+                                                wire:click="sendToPatient({{ $request['stretcher_register_id'] }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
+                                                <span class="btn-content" wire:loading.remove
                                                     wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
-                                                <span class="btn-content" wire:loading.remove wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
                                                     <i class="fas fa-running"></i>
                                                     <span>ไปรับผู้ป่วย</span>
                                                 </span>
-                                                <span class="btn-loading" wire:loading wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
+                                                <span class="btn-loading" wire:loading
+                                                    wire:target="sendToPatient({{ $request['stretcher_register_id'] }})">
                                                     <i class="fas fa-spinner fa-spin"></i>
                                                     <span>กำลังอัปเดต...</span>
                                                 </span>
                                             </button>
                                         @elseif($request['stretcher_team_list_id'] == $currentUserId && $request['stretcher_work_status_id'] == 3)
                                             <button type="button" class="btn btn-action btn-complete"
-                                                    wire:click="completeTask({{ $request['stretcher_register_id'] }})"
-                                                    wire:loading.attr="disabled"
+                                                wire:click="completeTask({{ $request['stretcher_register_id'] }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="completeTask({{ $request['stretcher_register_id'] }})">
+                                                <span class="btn-content" wire:loading.remove
                                                     wire:target="completeTask({{ $request['stretcher_register_id'] }})">
-                                                <span class="btn-content" wire:loading.remove wire:target="completeTask({{ $request['stretcher_register_id'] }})">
                                                     <i class="fas fa-check-circle"></i>
                                                     <span>งานสำเร็จ</span>
                                                 </span>
-                                                <span class="btn-loading" wire:loading wire:target="completeTask({{ $request['stretcher_register_id'] }})">
+                                                <span class="btn-loading" wire:loading
+                                                    wire:target="completeTask({{ $request['stretcher_register_id'] }})">
                                                     <i class="fas fa-spinner fa-spin"></i>
                                                     <span>กำลังบันทึก...</span>
                                                 </span>
@@ -482,7 +504,7 @@
             window.getPriorityClass = function(priority) {
                 const priorityClasses = {
                     'ด่วนที่สุด': 'priority-critical',
-                    'ด่วน': 'priority-urgent', 
+                    'ด่วน': 'priority-urgent',
                     'ปกติ': 'priority-normal'
                 };
                 return priorityClasses[priority] || 'priority-normal';
@@ -490,8 +512,8 @@
 
             // Helper method to get urgency class  
             window.getUrgencyClass = function(request) {
-                if (request.stretcher_emergency_name || 
-                    ['ด่วนที่สุด', 'ด่วน'].includes(request.stretcher_priority_name)) {
+                if (request.stretcher_emergency_name || ['ด่วนที่สุด', 'ด่วน'].includes(request
+                        .stretcher_priority_name)) {
                     return 'urgent-request';
                 }
                 return '';
@@ -505,8 +527,8 @@
 @push('styles')
     <style>
         /* ===================================================================
-           🎨 Enhanced Stretcher Manager Styles
-           =================================================================== */
+                           🎨 Enhanced Stretcher Manager Styles
+                           =================================================================== */
 
         .stretcher-manager-container {
             min-height: 100vh;
@@ -873,7 +895,7 @@
 
         .stretcher-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            /*   grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); */
             gap: 2rem;
             margin-top: 2rem;
         }
@@ -1000,7 +1022,7 @@
         }
 
         .request-id {
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
             padding: 0.5rem 0.75rem;
             border-radius: var(--radius-md);
             font-size: 0.875rem;
@@ -1048,7 +1070,7 @@
         .patient-info-grid {
             display: grid;
             gap: 1rem;
-            
+
         }
 
         .info-item {
@@ -1273,8 +1295,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Enhanced Responsive Design */
@@ -1338,6 +1365,7 @@
         }
 
         @media (max-width: 576px) {
+
             .stretcher-card-header,
             .stretcher-card-body,
             .stretcher-card-footer {

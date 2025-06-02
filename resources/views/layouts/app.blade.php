@@ -34,6 +34,7 @@
     <!-- เพิ่มในส่วน head ของ app.blade.php -->
     <link rel="stylesheet" href="{{ asset('ui/enhanced-animations.css') }}">
     <link rel="stylesheet" href="{{ asset('ui/mobile-overrides.css') }}">
+    
     <!-- เพิ่มในส่วน scripts -->
 
     @vite(['resources/js/app.js'])
