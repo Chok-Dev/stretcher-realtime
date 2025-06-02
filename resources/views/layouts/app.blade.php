@@ -11,7 +11,9 @@
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#3b82f6">
     <!-- Enhanced Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap"
@@ -31,9 +33,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <!-- เพิ่มในส่วน head ของ app.blade.php -->
     <link rel="stylesheet" href="{{ asset('ui/enhanced-animations.css') }}">
-
+    <link rel="stylesheet" href="{{ asset('ui/mobile-overrides.css') }}">
     <!-- เพิ่มในส่วน scripts -->
-  
+
     @vite(['resources/js/app.js'])
     @livewireStyles
 
@@ -635,7 +637,8 @@
     </footer>
 
     @livewireScripts
-      <script src="{{ asset('ui/enhanced-stretcher-manager.js') }}"></script>
+    <script src="{{ asset('ui/enhanced-stretcher-manager.js') }}"></script>
+    <script src="{{ asset('ui/mobile-enhancements.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO" crossorigin="anonymous">
     </script>
